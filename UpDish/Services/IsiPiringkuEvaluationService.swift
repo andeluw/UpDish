@@ -39,10 +39,18 @@ struct IsiPiringkuEvaluationService {
 
     // MARK: - Per-category status
 
+    /// A category counts as sufficient once it reaches most of its recommended
+    /// share. Isi Piringku is a guideline (not a precise scale) and photo-based
+    /// portions are approximate, so we allow a tolerance below the exact target.
+    /// Without it, a well-composed plate like 34/16/34/16 would be wrongly
+    /// flagged: protein/fruit target 16.67% is impossible to hit with integer
+    /// percentages that still sum to 100.
+    private static let sufficiencyRatio = 0.85
+
     private func status(portion: Int, target: Double) -> CategoryStatus {
         if portion == 0 { return .missing }
-        // Below the recommended share of the plate → present but too little.
-        return Double(portion) < target ? .insufficient : .sufficient
+        // Below (most of) the recommended share of the plate → too little.
+        return Double(portion) < target * Self.sufficiencyRatio ? .insufficient : .sufficient
     }
 
     // MARK: - Overall verdict
