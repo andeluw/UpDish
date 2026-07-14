@@ -31,19 +31,24 @@ struct EvaluationResultView: View {
                         .font(.title2.bold())
                 }
 
-                EvaluationCard(
-                    status: viewModel.evaluation.overallStatus,
-                    feedback: viewModel.feedback
-                )
-
                 if viewModel.isGeneratingGuidance {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
-                        Text("Menyusun saran dari AI…")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
+                    guidanceLoadingCard
+                } else if let feedback = viewModel.feedback {
+                    EvaluationCard(
+                        status: viewModel.evaluation.overallStatus,
+                        feedback: feedback
+                    )
                 }
+
+                #if DEBUG
+                Label(viewModel.guidanceSource.rawValue, systemImage: "ladybug.fill")
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(Capsule())
+                #endif
 
                 Text("Komposisi Isi Piringku")
                     .font(.headline)
@@ -54,7 +59,7 @@ struct EvaluationResultView: View {
                     Spacer(minLength: 0)
                 }
 
-                if let recommendation = viewModel.recommendation {
+                if !viewModel.isGeneratingGuidance, let recommendation = viewModel.recommendation {
                     RecommendationCard(
                         recommendation: recommendation,
                         status: viewModel.evaluation.overallStatus
@@ -71,6 +76,25 @@ struct EvaluationResultView: View {
             await viewModel.translate(using: session)
         }
         #endif
+    }
+
+    /// Shown in the feedback slot while the on-device model + translation run,
+    /// so the user sees clear progress instead of placeholder/fallback text.
+    private var guidanceLoadingCard: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Menganalisis dengan AI…")
+                    .font(.subheadline.weight(.medium))
+                Text("Menyusun masukan dan rekomendasi untukmu.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     @ViewBuilder

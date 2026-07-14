@@ -32,7 +32,7 @@ struct GeneratedSuggestion {
     @Guide(description: "Which Isi Piringku group this suggestion belongs to")
     let category: GeneratedCategory
 
-    @Guide(description: "A common Indonesian food written in English, with a household portion, e.g. 'Stir-fried spinach — 1 medium serving'. Never mention calories, grams, or nutrient amounts.")
+    @Guide(description: "A common Indonesian food in English, then ' — ', then a household portion whose unit physically matches the food. Use COUNT/PIECE units for solid or sliced foods (e.g. 'Pineapple slices — 2 slices', 'Fried tempeh — 2 pieces', 'Boiled egg — 1 egg', 'Banana — 1 fruit'); a SPOON/SCOOP or plate fraction for rice and staples (e.g. 'White rice — 1 scoop', 'Boiled potato — half a plate'); a BOWL or PLATE fraction for vegetables (e.g. 'Sautéed spinach — 1 small bowl', 'Blanched water spinach — half a plate'). NEVER use volume units like cups or glasses for solid, sliced, or piece foods. NEVER use hand or palm-based units such as 'handful' or 'a palm'. Never mention calories, grams, or nutrient amounts.")
     let foodWithPortion: String
 }
 
@@ -55,7 +55,11 @@ struct GeneratedGuidance {
 extension MealGuidanceService {
 
     func generateEnglishGuidance(for evaluation: MealEvaluation) async -> EnglishGuidance? {
-        guard case .available = SystemLanguageModel.default.availability else { return nil }
+        let availability = SystemLanguageModel.default.availability
+        guard case .available = availability else {
+            NSLog("UPDISH_FM_UNAVAILABLE: \(Self.reason(for: availability))")
+            return nil
+        }
 
         do {
             let session = LanguageModelSession(instructions: Self.instructions)
@@ -84,6 +88,24 @@ extension MealGuidanceService {
         }
     }
 
+    /// Human-readable explanation of why the on-device model can't be used, so
+    /// the console log points straight at the cause (device, Settings, or model
+    /// still downloading) instead of a generic "unavailable".
+    private static func reason(for availability: SystemLanguageModel.Availability) -> String {
+        switch availability {
+        case .available:
+            return "available"
+        case .unavailable(.deviceNotEligible):
+            return "device not eligible — this hardware doesn't support Apple Intelligence"
+        case .unavailable(.appleIntelligenceNotEnabled):
+            return "Apple Intelligence is OFF — enable it in Settings › Apple Intelligence & Siri"
+        case .unavailable(.modelNotReady):
+            return "model not ready — still downloading, or waiting on network/battery"
+        case .unavailable(let other):
+            return "unavailable: \(other)"
+        }
+    }
+
     // MARK: Instructions
 
     private static var instructions: String {
@@ -104,8 +126,17 @@ extension MealGuidanceService {
         missing or too small.
         - Choose common, affordable Indonesian foods that genuinely complete THIS \
         dish so it approaches the Isi Piringku standard.
-        - Make each suggestion specific and practical, with a household portion \
-        (e.g. "1 medium serving", "1 piece", "half a bowl").
+        - Make each suggestion specific and practical, with a household portion.
+
+        Portion units MUST match the food's physical form (this matters a lot):
+        - Solid / sliced / piece foods → count them: "2 slices", "2 pieces", \
+        "1 fruit", "1 egg". (e.g. fruit, tempeh, tofu, meat, eggs)
+        - Rice and starchy staples → a spoon/scoop or plate fraction: "1 scoop", \
+        "half a plate".
+        - Vegetables → a bowl or plate fraction: "1 small bowl", "half a plate".
+        - NEVER use volume units (cup, glass) for solid, sliced, or piece foods. \
+        You cannot measure sliced pineapple or fried tempeh in cups.
+        - NEVER use hand or palm-based units such as "a handful" or "a palm".
 
         Strict rules:
         - Write everything in English (it will be translated afterwards).

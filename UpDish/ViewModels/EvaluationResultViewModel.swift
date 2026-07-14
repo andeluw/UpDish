@@ -26,12 +26,45 @@ final class EvaluationResultViewModel {
 
     let evaluation: MealEvaluation
 
-    var feedback: FeedbackText
+    var feedback: FeedbackText?
     var recommendation: MealRecommendation?
-    private(set) var isGeneratingGuidance = false
+    /// True while the AI pipeline (model + translation) is still running. The
+    /// screen shows a loading indicator during this time — never the fallback.
+    private(set) var isGeneratingGuidance = true
 
+    /// Which stage produced the text currently on screen. Lets us tell, at a
+    /// glance, whether we're seeing the deterministic fallback, the raw English
+    /// model output, or the fully translated result. Surfaced as a DEBUG badge.
+    enum GuidanceSource: String {
+        case fallback = "Fallback template (ID)"
+        case foundationModel = "Foundation Model (EN, not translated)"
+        case translated = "Foundation Model → Translated (ID)"
+
+        /// Higher = further along the pipeline. Guidance only ever moves forward.
+        var rank: Int {
+            switch self {
+            case .fallback: 0
+            case .foundationModel: 1
+            case .translated: 2
+            }
+        }
+    }
+    private(set) var guidanceSource: GuidanceSource = .fallback
+
+    /// Advances the badge only forward. `.translationTask` / `.task` can re-fire
+    /// out of order once translation is fast (assets cached), so a late
+    /// `.foundationModel` write must never clobber `.translated`.
+    private func advanceGuidance(to source: GuidanceSource) {
+        guard source.rank > guidanceSource.rank else { return }
+        guidanceSource = source
+    }
+
+    private var hasLoaded = false
     private let guidanceService: MealGuidanceService
     private var pendingEnglish: EnglishGuidance?
+    /// Deterministic Indonesian guidance, shown only if the AI pipeline can't
+    /// deliver (model unavailable or translation fails) — never during loading.
+    private let fallback: MealGuidance
 
     #if canImport(Translation)
     /// Set once English guidance is ready; drives the View's `.translationTask`.
@@ -54,21 +87,37 @@ final class EvaluationResultViewModel {
         let evaluation = evaluationService.evaluate(mealName: foodName, components: components)
         self.evaluation = evaluation
 
-        let fallback = guidanceService.fallbackGuidance(for: evaluation)
-        self.feedback = fallback.feedback
-        self.recommendation = fallback.recommendation
+        self.fallback = guidanceService.fallbackGuidance(for: evaluation)
+        // Start empty + loading; content appears once the AI pipeline resolves.
+        self.feedback = nil
+        self.recommendation = nil
     }
 
     /// Stage 1: get English guidance from the on-device model, then trigger
     /// translation. Keeps the deterministic fallback if the model is absent.
     func load() async {
-        isGeneratingGuidance = true
+        guard !hasLoaded else { return }
+        hasLoaded = true
+
+        #if canImport(Translation)
+        // One-time diagnostic: dump every language Apple Translation supports on
+        // THIS device, and whether Indonesian is among them. Settles whether the
+        // EN→ID translation approach is viable at all.
+        let supported = await LanguageAvailability().supportedLanguages
+        let codes = supported.map { $0.languageCode?.identifier ?? "?" }.sorted()
+        let hasIndonesian = supported.contains { $0.languageCode?.identifier == "id" }
+        NSLog("UPDISH_TRANSLATE_SUPPORTED (\(codes.count)): \(codes.joined(separator: ", "))")
+        NSLog("UPDISH_TRANSLATE_HAS_INDONESIAN: \(hasIndonesian)")
+        #endif
 
         guard let english = await guidanceService.makeEnglishGuidance(for: evaluation) else {
-            isGeneratingGuidance = false
+            NSLog("UPDISH_STAGE1_FM: no output — showing deterministic fallback (model unavailable)")
+            applyFallback()
             return
         }
         pendingEnglish = english
+        advanceGuidance(to: .foundationModel)
+        NSLog("UPDISH_STAGE1_FM: got English guidance → \"\(english.feedbackBody)\"")
 
         #if canImport(Translation)
         translationConfig = TranslationSession.Configuration(
@@ -76,17 +125,33 @@ final class EvaluationResultViewModel {
             target: Locale.Language(identifier: "id")
         )
         #else
-        isGeneratingGuidance = false
+        // No on-device translation on this platform — fall back to templates.
+        applyFallback()
         #endif
+    }
+
+    /// Publishes the deterministic Indonesian guidance and ends the loading
+    /// state. Used only when the model or the translator can't deliver.
+    private func applyFallback() {
+        feedback = fallback.feedback
+        recommendation = fallback.recommendation
+        isGeneratingGuidance = false
     }
 
     #if canImport(Translation)
     /// Stage 2: translate the English guidance into Indonesian and publish it.
     func translate(using session: TranslationSession) async {
-        defer { isGeneratingGuidance = false }
-        guard let english = pendingEnglish else { return }
+        // Already translated? A re-fired task must not redo work or reset state.
+        guard guidanceSource != .translated, let english = pendingEnglish else { return }
 
         do {
+            NSLog("UPDISH_STAGE2_TRANSLATE: preparing translation (ensures en→id assets are downloaded)")
+            // Warms up the translation extension and downloads the en→id language
+            // pack if needed. Skipping this makes translate() fail with a dropped
+            // connection (TranslationErrorDomain Code=14) when assets aren't ready.
+            try await session.prepareTranslation()
+
+            NSLog("UPDISH_STAGE2_TRANSLATE: starting EN→ID translation")
             let body = try await session.translate(english.feedbackBody).targetText
             let summary = english.recommendationSummary.isEmpty
                 ? ""
@@ -98,17 +163,23 @@ final class EvaluationResultViewModel {
                 translatedOptions.append((suggestion.category, text))
             }
 
+            // Both the feedback AND the recommendation come from the model, now
+            // in Indonesian. Fall back to the curated recommendation only if the
+            // model produced no usable options for the flagged groups.
             feedback = FeedbackText(headline: evaluation.overallStatus.displayName, body: body)
-            if let recommendation = guidanceService.recommendation(
+            recommendation = guidanceService.recommendation(
                 summary: summary,
                 options: translatedOptions,
                 for: evaluation
-            ) {
-                self.recommendation = recommendation
-            }
+            ) ?? fallback.recommendation
+
+            pendingEnglish = nil
+            advanceGuidance(to: .translated)
+            isGeneratingGuidance = false
+            NSLog("UPDISH_STAGE2_TRANSLATE: success → \"\(body)\"")
         } catch {
-            NSLog("UPDISH translation error: \(error)")
-            // Keep the Indonesian deterministic fallback already on screen.
+            NSLog("UPDISH_STAGE2_TRANSLATE: FAILED (\(error)) — showing deterministic fallback")
+            applyFallback()
         }
     }
     #endif
