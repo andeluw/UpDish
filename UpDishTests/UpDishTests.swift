@@ -17,9 +17,21 @@ struct UpDishTests {
     func testRemoveComponent() {
         let vm = ComponentViewModel()
         vm.components = [
-            MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 40),
-            MealComponent(name: "Ayam Goreng", category: .protein, portionPercentage: 30),
-            MealComponent(name: "Telur", category: .protein, portionPercentage: 30),
+            MealComponent(
+                name: "Nasi",
+                category: .stapleFood,
+                portionPercentage: 40
+            ),
+            MealComponent(
+                name: "Ayam Goreng",
+                category: .protein,
+                portionPercentage: 30
+            ),
+            MealComponent(
+                name: "Telur",
+                category: .protein,
+                portionPercentage: 30
+            ),
         ]
 
         vm.removeComponent(at: IndexSet(integer: 2))
@@ -30,31 +42,43 @@ struct UpDishTests {
         #expect(!vm.components.contains(where: { $0.name == "Telur" }))
     }
 
-    @Test("Add: Menambah komponen baru yang terlewat")
+    @Test("Add: Menambah komponen baru dengan nama default otomatis")
     func testAddComponent() {
         let vm = ComponentViewModel()
         vm.components = [
-            MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 50),
-            MealComponent(name: "Ayam Goreng", category: .protein, portionPercentage: 50),
+            MealComponent(
+                name: "Nasi",
+                category: .stapleFood,
+                portionPercentage: 50
+            ),
+            MealComponent(
+                name: "Ayam Goreng",
+                category: .protein,
+                portionPercentage: 49
+            ),
         ]
 
-        vm.addComponent(name: "Sayur Sop", category: .vegetable, portionPercentage: 1)
+        vm.addComponent(category: .vegetable, portionPercentage: 1)
 
         #expect(vm.components.count == 3)
-        #expect(vm.components.last?.name == "Sayur Sop")
+        #expect(vm.components.last?.name == "Komponen Baru 1")
     }
 
-    @Test("Duplicate: Menolak penambahan komponen dengan nama yang sama")
-    func testDuplicateComponent() {
+    @Test(
+        "Collision: Otomatis menaikkan indeks nama jika 'Komponen Baru 1' sudah ada"
+    )
+    func testAutoResolveNamingCollision() {
         let vm = ComponentViewModel()
         vm.components = [
-            MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 50),
-            MealComponent(name: "Ayam Goreng", category: .protein, portionPercentage: 50),
+            MealComponent(
+                name: "Komponen Baru 1",
+                category: .protein,
+                portionPercentage: 10
+            )
         ]
-
-        vm.addComponent(name: "Nasi", category: .stapleFood, portionPercentage: 1)
-
+        vm.addComponent(category: .vegetable, portionPercentage: 5)
         #expect(vm.components.count == 2)
+        #expect(vm.components.last?.name == "Komponen Baru 2")
     }
 
     @Test("Edge Case: Validasi gagal jika daftar makanan kosong")
@@ -69,13 +93,21 @@ struct UpDishTests {
     func testValidTotalProportion() {
         let vm = ComponentViewModel()
         vm.components = [
-            MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 50),
-            MealComponent(name: "Ayam", category: .protein, portionPercentage: 50),
+            MealComponent(
+                name: "Nasi",
+                category: .stapleFood,
+                portionPercentage: 50
+            ),
+            MealComponent(
+                name: "Ayam",
+                category: .protein,
+                portionPercentage: 50
+            ),
         ]
 
         vm.updateProportion(for: "Nasi", to: 30)
         vm.updateProportion(for: "Ayam", to: 20)
-        vm.addComponent(name: "Sayur Sop", category: .vegetable, portionPercentage: 50)
+        vm.addComponent(category: .vegetable, portionPercentage: 50)
 
         #expect(vm.isDishValid == true)
     }
@@ -84,8 +116,16 @@ struct UpDishTests {
     func testUnderflowProportion() {
         let vm = ComponentViewModel()
         vm.components = [
-            MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 30),
-            MealComponent(name: "Ayam", category: .protein, portionPercentage: 20),
+            MealComponent(
+                name: "Nasi",
+                category: .stapleFood,
+                portionPercentage: 30
+            ),
+            MealComponent(
+                name: "Ayam",
+                category: .protein,
+                portionPercentage: 20
+            ),
         ]
 
         #expect(vm.isDishValid == false)
@@ -95,9 +135,21 @@ struct UpDishTests {
     func testOverflowProportion() {
         let vm = ComponentViewModel()
         vm.components = [
-            MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 50),
-            MealComponent(name: "Ayam", category: .protein, portionPercentage: 30),
-            MealComponent(name: "Bayam", category: .vegetable, portionPercentage: 30),
+            MealComponent(
+                name: "Nasi",
+                category: .stapleFood,
+                portionPercentage: 50
+            ),
+            MealComponent(
+                name: "Ayam",
+                category: .protein,
+                portionPercentage: 30
+            ),
+            MealComponent(
+                name: "Bayam",
+                category: .vegetable,
+                portionPercentage: 30
+            ),
         ]
 
         #expect(vm.isDishValid == false)
@@ -109,9 +161,21 @@ struct UpDishTests {
     func testRemoveAndRecalculate() {
         let vm = ComponentViewModel()
         vm.components = [
-            MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 40),
-            MealComponent(name: "Ayam", category: .protein, portionPercentage: 30),
-            MealComponent(name: "Telur", category: .protein, portionPercentage: 30),
+            MealComponent(
+                name: "Nasi",
+                category: .stapleFood,
+                portionPercentage: 40
+            ),
+            MealComponent(
+                name: "Ayam",
+                category: .protein,
+                portionPercentage: 30
+            ),
+            MealComponent(
+                name: "Telur",
+                category: .protein,
+                portionPercentage: 30
+            ),
         ]
 
         vm.removeComponent(at: IndexSet(integer: 2))
@@ -123,8 +187,16 @@ struct UpDishTests {
     func testNegativeProportionCapping() {
         let vm = ComponentViewModel()
         vm.components = [
-            MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 50),
-            MealComponent(name: "Ayam", category: .protein, portionPercentage: 50),
+            MealComponent(
+                name: "Nasi",
+                category: .stapleFood,
+                portionPercentage: 50
+            ),
+            MealComponent(
+                name: "Ayam",
+                category: .protein,
+                portionPercentage: 50
+            ),
         ]
 
         vm.updateProportion(for: "Ayam", to: -20)
@@ -135,7 +207,13 @@ struct UpDishTests {
     @Test("Huge Value: Memotong nilai yang lebih dari 100% menjadi tepat 100%")
     func testHugeProportionCapping() {
         let vm = ComponentViewModel()
-        vm.components = [MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 50)]
+        vm.components = [
+            MealComponent(
+                name: "Nasi",
+                category: .stapleFood,
+                portionPercentage: 50
+            )
+        ]
 
         vm.updateProportion(for: "Nasi", to: 120)
 
@@ -148,42 +226,122 @@ struct UpDishTests {
     func testZeroProportionCapping() {
         let vm = ComponentViewModel()
         vm.components = [
-            MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 99),
-            MealComponent(name: "Ayam", category: .protein, portionPercentage: 1),
+            MealComponent(
+                name: "Nasi",
+                category: .stapleFood,
+                portionPercentage: 99
+            ),
+            MealComponent(
+                name: "Ayam",
+                category: .protein,
+                portionPercentage: 1
+            ),
         ]
 
         vm.updateProportion(for: "Ayam", to: 0)
 
         #expect(vm.components[1].portionPercentage == 1)
     }
-    
+
     @Test("Edit Name: Mengubah nama komponen yang sudah ada")
-        func testEditComponentName() {
-            let vm = ComponentViewModel()
-            let componentID = UUID()
-            
-            vm.components = [
-                MealComponent(id: componentID, name: "Ayam Goreng", category: .protein, portionPercentage: 50)
-            ]
-            
-            vm.updateName(for: componentID, to: "Ayam Bakar")
-            
-            #expect(vm.components[0].name == "Ayam Bakar")
-            #expect(vm.components[0].portionPercentage == 50)
-        }
-        
-        @Test("Edit Name Duplicate: Menolak perubahan nama jika nama baru sudah ada di piring")
-        func testEditComponentNameDuplicate() {
-            let vm = ComponentViewModel()
-            let targetID = UUID()
-            
-            vm.components = [
-                MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 50),
-                MealComponent(id: targetID, name: "Ayam Goreng", category: .protein, portionPercentage: 50)
-            ]
-            
-            vm.updateName(for: targetID, to: "Nasi")
-            
-            #expect(vm.components[1].name == "Ayam Goreng")
-        }
+    func testEditComponentName() {
+        let vm = ComponentViewModel()
+        let componentID = UUID()
+
+        vm.components = [
+            MealComponent(
+                id: componentID,
+                name: "Ayam Goreng",
+                category: .protein,
+                portionPercentage: 50
+            )
+        ]
+
+        vm.updateName(for: componentID, to: "Ayam Bakar")
+
+        #expect(vm.components[0].name == "Ayam Bakar")
+        #expect(vm.components[0].portionPercentage == 50)
+    }
+
+    @Test(
+        "Edit Name Duplicate: Menolak perubahan nama jika nama baru sudah ada di piring"
+    )
+    func testEditComponentNameDuplicate() {
+        let vm = ComponentViewModel()
+        let targetID = UUID()
+
+        vm.components = [
+            MealComponent(
+                name: "Nasi",
+                category: .stapleFood,
+                portionPercentage: 50
+            ),
+            MealComponent(
+                id: targetID,
+                name: "Ayam Goreng",
+                category: .protein,
+                portionPercentage: 50
+            ),
+        ]
+
+        vm.updateName(for: targetID, to: "Nasi")
+
+        #expect(vm.components[1].name == "Ayam Goreng")
+    }
+
+    @Test("Meal Name: Validasi gagal jika nama menu kosong bersih")
+    func testEmptyMealNameValidation() {
+        let vm = ComponentViewModel()
+        vm.components = [
+            MealComponent(
+                name: "Nasi Putih",
+                category: .stapleFood,
+                portionPercentage: 100
+            )
+        ]
+
+        vm.mealName = ""
+
+        #expect(vm.isDishValid == false)
+    }
+
+    @Test(
+        "Meal Name: Validasi gagal jika nama menu hanya berisi spasi/whitespaces"
+    )
+    func testWhitespaceMealNameValidation() {
+        let vm = ComponentViewModel()
+        vm.components = [
+            MealComponent(
+                name: "Nasi Putih",
+                category: .stapleFood,
+                portionPercentage: 100
+            )
+        ]
+
+        vm.mealName = "      "
+
+        #expect(vm.isDishValid == false)
+    }
+
+    @Test(
+        "Meal Name: Validasi berhasil jika nama menu terisi dan total porsi pas 100%"
+    )
+    func testValidMealNameAndProportion() {
+        let vm = ComponentViewModel()
+        vm.mealName = "Nasi Ayam Panggang"
+        vm.components = [
+            MealComponent(
+                name: "Nasi Putih",
+                category: .stapleFood,
+                portionPercentage: 60
+            ),
+            MealComponent(
+                name: "Ayam Panggang",
+                category: .protein,
+                portionPercentage: 40
+            ),
+        ]
+
+        #expect(vm.isDishValid == true)
+    }
 }
