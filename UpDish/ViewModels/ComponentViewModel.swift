@@ -11,16 +11,18 @@ import Combine
 
 class ComponentViewModel: ObservableObject {
     @Published var components: [MealComponent] = []
+    @Published var mealName: String = "Makanan"
     
     /// Fungsi untuk menambah komponen
-    func addComponent(name: String, category: FoodCategory, portionPercentage: Int = 1) {
-        guard !name.isEmpty else { return }
+    func addComponent(category: FoodCategory, portionPercentage: Int = 1) {
+        var newIndex = 1
         
-        if (components.contains(where: {$0.name.lowercased() == name.lowercased() })) {
-            return
+        while components.contains(where: { $0.name.lowercased() == "komponen baru \(newIndex)".lowercased() }) {
+            newIndex += 1
         }
         
-        let newComponent = MealComponent(name: name, category: category, portionPercentage: portionPercentage)
+        let safeName = "Komponen Baru \(newIndex)"
+        let newComponent = MealComponent(name: safeName, category: category, portionPercentage: portionPercentage)
         components.append(newComponent)
     }
     
@@ -31,7 +33,7 @@ class ComponentViewModel: ObservableObject {
     
     /// Fungsi untuk mengubah nama komponen berdasarkan ID uniknya
     func updateName(for id: UUID, to newName: String) {
-        guard !newName.isEmpty else { return }
+        guard !newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard let index = components.firstIndex(where: { $0.id == id }) else { return }
         
         if components.contains(where: { $0.id != id && $0.name.lowercased() == newName.lowercased() }) {
@@ -53,8 +55,18 @@ class ComponentViewModel: ObservableObject {
     
     /// Validasi kelayakan piring sebelum lanjut ke evaluasi
     var isDishValid: Bool {
-        if components.isEmpty { return false }
-        let totalProportion = components.reduce(0) { $0 + $1.portionPercentage }
-        return totalProportion == 100
+            let isPercentageValid = remainingPercentage == 0
+            let isNameValid = !mealName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            
+            let areComponentsValid = !components.isEmpty && components.allSatisfy {
+                !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+            return isPercentageValid && isNameValid && areComponentsValid
+        }
+    
+    /// Menghitung sisa komposisi
+    var remainingPercentage: Int {
+        let total = components.reduce(0) { $0 + $1.portionPercentage }
+        return 100 - total
     }
 }
