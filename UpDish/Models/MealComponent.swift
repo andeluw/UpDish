@@ -11,13 +11,13 @@ struct MealComponent: Identifiable, Codable, Hashable {
     let id: UUID
     
     var name: String
-    var category: FoodCategory
+    var category: FoodCategory?
     var portionPercentage: Int
     
     init(
         id: UUID = UUID(),
         name: String,
-        category: FoodCategory,
+        category: FoodCategory? = nil,
         portionPercentage: Int
     ) {
         self.id = id
