@@ -10,11 +10,26 @@ import SwiftUI
 import Combine
 
 class ComponentViewModel: ObservableObject {
-    @Published var components: [MealComponent] = []
-    @Published var mealName: String = "Makanan"
+    @Published var components: [MealComponent]
+    @Published var mealName: String
+    
+    init(
+        mealName: String = "Makanan",
+        components: [MealComponent] = []
+    ) {
+        self.mealName = mealName
+        self.components = components
+    }
+    
+    convenience init(draft: MealDraft) {
+        self.init(
+            mealName: draft.mealName,
+            components: draft.components
+        )
+    }
     
     /// Fungsi untuk menambah komponen
-    func addComponent(category: FoodCategory, portionPercentage: Int = 1) {
+    func addComponent(portionPercentage: Int = 1) {
         var newIndex = 1
         
         while components.contains(where: { $0.name.lowercased() == "komponen baru \(newIndex)".lowercased() }) {
@@ -22,7 +37,7 @@ class ComponentViewModel: ObservableObject {
         }
         
         let safeName = "Komponen Baru \(newIndex)"
-        let newComponent = MealComponent(name: safeName, category: category, portionPercentage: portionPercentage)
+        let newComponent = MealComponent(name: safeName, portionPercentage: portionPercentage)
         components.append(newComponent)
     }
     
@@ -44,8 +59,8 @@ class ComponentViewModel: ObservableObject {
     }
     
     /// Fungsi untuk mengubah porsi/persentase secara spesifik
-    func updateProportion(for name: String, to newProportion: Int) {
-        guard let index = components.firstIndex(where: { $0.name.lowercased() == name.lowercased() }) else {
+    func updateProportion(for id: UUID, to newProportion: Int) {
+        guard let index = components.firstIndex(where: { $0.id == id }) else {
             return
         }
         

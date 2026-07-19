@@ -9,7 +9,13 @@ import SwiftUI
 
 struct ComponentModificationView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = ComponentViewModel()
+    @StateObject private var viewModel: ComponentViewModel
+    
+    init(draft: MealDraft) {
+        _viewModel = StateObject(
+            wrappedValue: ComponentViewModel(draft: draft)
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -171,7 +177,6 @@ struct ComponentModificationView: View {
                         VStack {
                             Button(action: {
                                 viewModel.addComponent(
-                                    category: .protein,
                                     portionPercentage: 1
                                 )
                             }) {
@@ -253,30 +258,6 @@ struct ComponentModificationView: View {
                 .scrollDismissesKeyboard(.interactively)
 
             }
-            .onAppear {
-                viewModel.components = [
-                    MealComponent(
-                        name: "Nasi Putih",
-                        category: .stapleFood,
-                        portionPercentage: 30
-                    ),
-                    MealComponent(
-                        name: "Ayam Panggang",
-                        category: .protein,
-                        portionPercentage: 20
-                    ),
-                    MealComponent(
-                        name: "Tomat",
-                        category: .vegetable,
-                        portionPercentage: 10
-                    ),
-                    MealComponent(
-                        name: "Alpukat",
-                        category: .fruit,
-                        portionPercentage: 6
-                    ),
-                ]
-            }
             .navigationTitle("Komponen Makanan")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -289,20 +270,19 @@ struct ComponentModificationView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-
-                        // TODO: update submit untuk evaluasi
-                        let newEvaluation = MealEvaluation(
+                        
+                        let mealDraft = MealDraft(
                             mealName: viewModel.mealName.trimmingCharacters(
                                 in: .whitespacesAndNewlines
                             ),
-                            components: viewModel.components,
-                            categoryEvaluations: [],
-                            overallStatus: .needsImprovement,
-                            summary: ""
+                            components: viewModel.components
                         )
+                        
                         print(
-                            "Memicu kalkulasi gizi untuk menu: \(newEvaluation.mealName)"
+                            "Komponen selesai diedit untuk menu: \(mealDraft.mealName)"
                         )
+                        
+                        // TODO: update submit untuk evaluasi
                     } label: {
                         Image(systemName: "checkmark")
                             .bold()
@@ -325,7 +305,7 @@ extension ComponentModificationView {
             set: { newValue in
                 guard index < viewModel.components.count else { return }
                 viewModel.updateProportion(
-                    for: viewModel.components[index].name,
+                    for: viewModel.components[index].id,
                     to: newValue
                 )
             }
@@ -345,5 +325,23 @@ extension View {
 }
 
 #Preview {
-    ComponentModificationView()
+    ComponentModificationView(
+        draft: MealDraft(
+            mealName: "Nasi Ayam Sayur",
+            components: [
+                MealComponent(
+                    name: "Nasi Putih",
+                    portionPercentage: 50
+                ),
+                MealComponent(
+                    name: "Ayam Goreng",
+                    portionPercentage: 25
+                ),
+                MealComponent(
+                    name: "Tumis Sayur",
+                    portionPercentage: 25
+                )
+            ]
+        )
+    )
 }

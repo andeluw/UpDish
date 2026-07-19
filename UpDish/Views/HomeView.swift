@@ -58,7 +58,9 @@ struct HomeView: View {
             .fullScreenCover(
                 isPresented: $photoInput.isCameraPresented,
                 onDismiss:  {
-                    photoInputViewModel.presentComponentModificationIfNeeded()
+                    Task {
+                        await photoInputViewModel.presentComponentModificationIfNeeded()
+                    }
                 }
             ) {
                 
@@ -71,13 +73,17 @@ struct HomeView: View {
             .sheet(
                 isPresented: $photoInput.isComponentModificationPresented
             ) {
-                ComponentModificationView()
-                    .interactiveDismissDisabled()
+                if let mealDraft = photoInput.mealDraft {
+                    ComponentModificationView(draft: mealDraft)
+                        .interactiveDismissDisabled()
+                }
             }
             .sheet(
                 isPresented: $photoInput.isPhotosPresented,
                 onDismiss: {
-                    photoInputViewModel.presentComponentModificationIfNeeded()
+                    Task {
+                        await photoInputViewModel.presentComponentModificationIfNeeded()
+                    }
                 }
             ) {
                 PhotoLibraryPickerView(
@@ -155,7 +161,7 @@ private extension HomeView {
                 .opacity(0.15)
                 .ignoresSafeArea()
             
-            ProgressView("Memuat foto...")
+            ProgressView("Memproses foto...")
                 .padding(20)
                 .background(
                     .regularMaterial,

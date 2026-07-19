@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E73B5C85300CA8A600CF5659 /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = E73B5C84300CA8A600CF5659 /* FirebaseAILogic */; };
+		E73B5C87300CA8A600CF5659 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = E73B5C86300CA8A600CF5659 /* FirebaseAppCheck */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		E78FA1403000A777003702F8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -39,6 +44,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E73B5C87300CA8A600CF5659 /* FirebaseAppCheck in Frameworks */,
+				E73B5C85300CA8A600CF5659 /* FirebaseAILogic in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +97,8 @@
 			);
 			name = UpDish;
 			packageProductDependencies = (
+				E73B5C84300CA8A600CF5659 /* FirebaseAILogic */,
+				E73B5C86300CA8A600CF5659 /* FirebaseAppCheck */,
 			);
 			productName = UpDish;
 			productReference = E721B3EF3000286C0050E8BA /* UpDish.app */;
@@ -146,6 +155,9 @@
 			);
 			mainGroup = E721B3E63000286C0050E8BA;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E73B5C83300CA8A600CF5659 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E721B3F03000286C0050E8BA /* Products */;
 			projectDirPath = "";
@@ -326,6 +338,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconDev;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = UpDish/UpDish.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = RMMQLJ5HPD;
@@ -360,6 +373,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = UpDish/UpDish.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = RMMQLJ5HPD;
@@ -462,6 +476,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E73B5C83300CA8A600CF5659 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.16.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E73B5C84300CA8A600CF5659 /* FirebaseAILogic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E73B5C83300CA8A600CF5659 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAILogic;
+		};
+		E73B5C86300CA8A600CF5659 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E73B5C83300CA8A600CF5659 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E721B3E73000286C0050E8BA /* Project object */;
 }
