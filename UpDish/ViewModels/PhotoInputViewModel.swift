@@ -9,6 +9,7 @@ import Observation
 import PhotosUI
 import SwiftUI
 import UIKit
+import FirebaseCore
 
 @MainActor
 @Observable
@@ -39,9 +40,21 @@ final class PhotoInputViewModel {
     }
 
     convenience init() {
+        #if DEBUG
+        if FirebaseApp.app() == nil {
+            self.init(
+                mealDetectionService: MockMealDetectionService()
+            )
+        } else {
+            self.init(
+                mealDetectionService: FirebaseAIMealDetectionService()
+            )
+        }
+        #else
         self.init(
             mealDetectionService: FirebaseAIMealDetectionService()
         )
+        #endif
     }
 
     var isCameraAvailable: Bool {
