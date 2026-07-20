@@ -26,7 +26,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         case "com.andeluw.UpDish":
             configurationName = "GoogleService-Info"
         default:
+            #if DEBUG
+            print("Firebase skipped: no configuration for \(bundleIdentifier)")
+            return true
+            #else
             fatalError("No Firebase configuration for bundle identifier: \(bundleIdentifier)")
+            #endif
         }
         
         guard
@@ -36,7 +41,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             ),
             let options = FirebaseOptions(contentsOfFile: filePath)
         else {
+            #if DEBUG
+            print("Firebase skipped: \(configurationName).plist was not found.")
+            return true
+            #else
             fatalError("\(configurationName).plist was not found in the app bundle.")
+            #endif
         }
         
         #if DEBUG
