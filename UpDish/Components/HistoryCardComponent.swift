@@ -17,7 +17,7 @@ struct HistoryCardComponent: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 90, height: 90)
+                    .frame(width: 75, height: 75)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             } else {
                 ZStack {
@@ -32,24 +32,38 @@ struct HistoryCardComponent: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(viewModel.getMealName(for: record))
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .lineLimit(2)
+                    .font(.footnote)
+                    .fontWeight(.bold)
+                    .lineLimit(3)
                 Text(viewModel.getFormattedDate(for: record))
-                    .font(.caption)
+                    .font(.caption2)
+                    .fontWeight(.bold)
                     .foregroundStyle(Color.secondary)
 
                 MealStatusChip(status: viewModel.getStatus(for: record))
                     .padding(.vertical, 2)
 
                 Text(viewModel.getSummary(for: record))
-                    .font(.footnote)
-                    .fontWeight(.medium)
+                    .font(.caption2)
+                    .fontWeight(.semibold)
                     .foregroundColor(.black)
-                    .lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(voiceOverLabel)
+        .environment(\.locale, Locale(identifier: "id"))
+    }
+    
+    private var voiceOverLabel: Text {
+        let name = viewModel.getMealName(for: record)
+        let date = viewModel.getFormattedDate(for: record).replacingOccurrences(of: "|", with: "tanggal")
+        let status = viewModel.getStatus(for: record).displayName
+        let summary = viewModel.getSummary(for: record)
+        
+        let fullText = "\(name). Dianalisis pada jam \(date). Status gizi \(status), \(summary)"
+        
+        return Text(fullText)
     }
 }
 
@@ -66,7 +80,6 @@ struct HistoryCardComponent: View {
             MealComponent(name: "Ayam Panggang", category: .protein, portionPercentage: 35),
             MealComponent(name: "Sayur & Pepaya", category: .vegetable, portionPercentage: 30)
         ],
-        // 🌟 SEMUA CUKUP: Array kosong / status .sufficient membuat VM mengoutput "Semua komponen terpenuhi"
         categoryEvaluations: [
             CategoryEvaluation(category: .stapleFood, portionPercentage: 35, status: .sufficient, targetPercentage: 35),
             CategoryEvaluation(category: .protein, portionPercentage: 35, status: .sufficient, targetPercentage: 35),
@@ -76,7 +89,6 @@ struct HistoryCardComponent: View {
     
     HistoryCardComponent(record: mockRecord, viewModel: mockViewModel)
         .padding()
-        .previewLayout(.sizeThatFits)
 }
 
 #Preview("Kondisi Kekurangan Zat Gizi") {
@@ -100,5 +112,4 @@ struct HistoryCardComponent: View {
     
     HistoryCardComponent(record: mockRecord, viewModel: mockViewModel)
         .padding()
-        .previewLayout(.sizeThatFits)
 }

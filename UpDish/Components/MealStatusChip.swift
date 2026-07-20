@@ -18,8 +18,7 @@ struct MealStatusChip: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(backgroundColor)
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(textColor, lineWidth: 1.5))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(textColor, lineWidth: 1))
     }
 
     private var textColor: Color {
