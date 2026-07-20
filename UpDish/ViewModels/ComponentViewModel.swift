@@ -69,16 +69,24 @@ class ComponentViewModel: ObservableObject {
     }
     
     /// Menjalankan evaluasi Isi Piringku pada komponen yang sudah dikoreksi.
-    /// Ini mengganti kalkulasi dummy sebelumnya — hasilnya dipakai untuk
-    /// berpindah ke layar hasil evaluasi.
+    ///
+    /// Deteksi hanya mengembalikan nama dan porsi tanpa kelompok Isi Piringku,
+    /// jadi komponen diklasifikasikan dulu. Tanpa langkah ini `category` tetap
+    /// nil dan seluruh piring dihitung kosong.
+    @MainActor
     func makeEvaluation(
+        classifier: MealComponentClassifier = .init(),
         using service: IsiPiringkuEvaluationService = .init()
-    ) -> MealEvaluation {
-        service.evaluate(
+    ) async -> MealEvaluation {
+        // Simpan hasil klasifikasi agar ikut tersimpan di riwayat.
+        components = await classifier.classify(components)
+
+        return service.evaluate(
             mealName: mealName.trimmingCharacters(in: .whitespacesAndNewlines),
             components: components
         )
     }
+
 
     /// Validasi kelayakan piring sebelum lanjut ke evaluasi
     var isDishValid: Bool {

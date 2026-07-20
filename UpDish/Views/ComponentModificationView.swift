@@ -25,6 +25,9 @@ struct ComponentModificationView: View {
     /// doubles as the "already confirmed" guard against repeated submits.
     @State private var confirmedEvaluation: MealEvaluation?
 
+    /// True while components are being classified and evaluated.
+    @State private var isConfirming = false
+
     var body: some View {
         NavigationStack {
             VStack {
@@ -278,15 +281,23 @@ struct ComponentModificationView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        confirm()
+                        Task { await confirm() }
                     } label: {
-                        Image(systemName: "checkmark")
-                            .bold()
+                        if isConfirming {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "checkmark")
+                                .bold()
+                        }
                     }
                     .buttonStyle(.borderedProminent)
-                    // Disabled while the list is invalid, and once confirmed —
-                    // the latter prevents a repeated confirmation.
-                    .disabled(!viewModel.isDishValid || confirmedEvaluation != nil)
+                    // Disabled while the list is invalid, while confirming, and
+                    // once confirmed — preventing a repeated confirmation.
+                    .disabled(
+                        !viewModel.isDishValid
+                        || confirmedEvaluation != nil
+                        || isConfirming
+                    )
                 }
             }
             .navigationDestination(item: $confirmedEvaluation) { evaluation in
@@ -304,10 +315,15 @@ struct ComponentModificationView: View {
     /// saves it to history (food name + components + recommendation), and
     /// navigates to the result screen (where the Foundation Model pipeline runs
     /// automatically). Guarded so a double-tap can't confirm twice.
-    private func confirm() {
-        guard confirmedEvaluation == nil else { return }
+    private func confirm() async {
+        guard confirmedEvaluation == nil, !isConfirming else { return }
 
-        let evaluation = viewModel.makeEvaluation()
+        isConfirming = true
+        defer { isConfirming = false }
+
+        // Classifies the detected components into Isi Piringku groups first,
+        // otherwise nothing would count toward the plate.
+        let evaluation = await viewModel.makeEvaluation()
         persist(evaluation)
         confirmedEvaluation = evaluation
     }

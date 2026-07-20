@@ -189,10 +189,10 @@ final class EvaluationResultViewModel {
             try await session.prepareTranslation()
 
             NSLog("UPDISH_STAGE2_TRANSLATE: starting EN→ID translation")
-            let body = try await session.translate(english.feedbackBody).targetText
+            let body = Self.informal(try await session.translate(english.feedbackBody).targetText)
             let summary = english.recommendationSummary.isEmpty
                 ? ""
-                : try await session.translate(english.recommendationSummary).targetText
+                : Self.informal(try await session.translate(english.recommendationSummary).targetText)
 
             var translatedOptions: [(category: FoodCategory, text: String)] = []
             for suggestion in english.suggestions where !suggestion.text.isEmpty {
@@ -221,6 +221,38 @@ final class EvaluationResultViewModel {
         }
     }
     #endif
+
+    // MARK: - Tone
+
+    /// Apple's translator renders "you" as the formal "Anda", but the rest of
+    /// the app speaks casually ("piringmu", "makananmu"). Swap the pronoun and
+    /// repair sentence capitalisation so the tone stays consistent.
+    private static func informal(_ text: String) -> String {
+        let swapped = text.replacingOccurrences(
+            of: "\\bAnda\\b",
+            with: "kamu",
+            options: [.regularExpression]
+        )
+        return capitalizingSentences(swapped)
+    }
+
+    private static func capitalizingSentences(_ text: String) -> String {
+        var result = ""
+        var startOfSentence = true
+
+        for character in text {
+            if startOfSentence, character.isLetter {
+                result.append(contentsOf: character.uppercased())
+                startOfSentence = false
+            } else {
+                result.append(character)
+                if character == "." || character == "!" || character == "?" {
+                    startOfSentence = true
+                }
+            }
+        }
+        return result
+    }
 
     // MARK: - Caching
 

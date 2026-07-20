@@ -39,7 +39,7 @@ struct GeneratedSuggestion {
 @available(iOS 26.0, *)
 @Generable
 struct GeneratedGuidance {
-    @Guide(description: "One or two friendly sentences in simple English describing the plate's balance. No numbers.")
+    @Guide(description: "Two short sentences in simple English. First sentence: briefly say what is already good, naming the actual foods on the plate. Second sentence: name EVERY group that is too small or missing — for a too-small group say that food is already there but the portion is still small and more can be added, and for a missing group say it is not on the plate yet and can be added. No numbers.")
     let feedbackBody: String
 
     @Guide(description: "One encouraging English sentence about the benefit of completing the missing groups. No numbers.")
@@ -151,7 +151,13 @@ extension MealGuidanceService {
         "tempe" when the plate has grilled chicken).
         - NEVER mention calories, grams, or any nutrient amount.
         - Do not suggest anything for a group that is already sufficient.
-        - Keep the tone simple, warm, and encouraging.
+        - NEVER call the plate balanced, complete, healthy, or "a good start" \
+        when any group is too small or missing. Saying a plate is balanced when \
+        it is not contradicts the verdict shown to the user.
+        - Do not praise a group whose portion is too small. Acknowledge it is \
+        there, then say more can be added.
+        - Keep the tone simple, warm, and encouraging — but warm does not mean \
+        vague. Always state plainly which groups still need adding.
         """
     }
 
@@ -179,6 +185,10 @@ extension MealGuidanceService {
         return """
         Here is one Indonesian home-cooked plate.
 
+        The verdict has ALREADY been decided and is shown to the user. Your \
+        feedback must match it and must not contradict it:
+        \(Self.verdictBrief(for: evaluation.overallStatus))
+
         Foods actually on the plate right now:
         \(plateItems.isEmpty ? "(none)" : plateItems)
 
@@ -190,15 +200,39 @@ extension MealGuidanceService {
         new food): \(missing.isEmpty ? "none" : missing.joined(separator: ", "))
 
         Task:
-        1. feedbackBody: warmly describe the plate. When you mention a group that \
-        is already present, refer to the ACTUAL food listed above — never invent \
-        or swap in a different food for it. For a "too small" group, clearly say \
-        the user already has it but the portion is still small.
+        1. feedbackBody: exactly two short sentences.
+           Sentence 1 — briefly say what is already good, naming the ACTUAL foods \
+           listed above. Never invent or swap in a different food.
+           Sentence 2 — you MUST mention every group listed as TOO SMALL or \
+           MISSING above. For a too-small group, say that food is already on the \
+           plate but the portion is still small and more can be added. For a \
+           missing group, say it is not there yet and can be added. If both \
+           lists are "none", instead say the plate is already complete.
         2. recommendationSummary: encourage completing the too-small and missing groups.
         3. suggestions: give 2-3 food choices with portions for EACH group that \
         is TOO SMALL or MISSING. Do not suggest anything for a group that is \
         already sufficient.
         """
+    }
+
+    /// Tells the model the verdict the user is already seeing, so its wording
+    /// can't celebrate a plate that the card says needs fixing.
+    private static func verdictBrief(for status: MealBalanceStatus) -> String {
+        switch status {
+        case .balanced:
+            return "BALANCED — every group is sufficient. Celebrate it."
+        case .mostlyBalanced:
+            return """
+            ALMOST BALANCED — one group still needs completing. Be positive, \
+            but still say clearly what to add.
+            """
+        case .needsImprovement:
+            return """
+            NOT BALANCED YET — more than one group still needs completing. Stay \
+            encouraging, but do NOT call this plate balanced or a good start. \
+            Be clear about what is still missing or too small.
+            """
+        }
     }
 
     private func statusLabel(_ status: CategoryStatus) -> String {
@@ -211,7 +245,7 @@ extension MealGuidanceService {
 }
 
 @available(iOS 26.0, *)
-private extension GeneratedCategory {
+extension GeneratedCategory {
     var appCategory: FoodCategory {
         switch self {
         case .makananPokok: .stapleFood
