@@ -68,6 +68,18 @@ class ComponentViewModel: ObservableObject {
         components[index].portionPercentage = cappedProportion
     }
     
+    /// Menjalankan evaluasi Isi Piringku pada komponen yang sudah dikoreksi.
+    /// Ini mengganti kalkulasi dummy sebelumnya — hasilnya dipakai untuk
+    /// berpindah ke layar hasil evaluasi.
+    func makeEvaluation(
+        using service: IsiPiringkuEvaluationService = .init()
+    ) -> MealEvaluation {
+        service.evaluate(
+            mealName: mealName.trimmingCharacters(in: .whitespacesAndNewlines),
+            components: components
+        )
+    }
+
     /// Validasi kelayakan piring sebelum lanjut ke evaluasi
     var isDishValid: Bool {
             let isPercentageValid = remainingPercentage == 0

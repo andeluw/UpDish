@@ -13,6 +13,7 @@
 //
 
 import SwiftUI
+import SwiftData
 #if canImport(Translation)
 import Translation
 #endif
@@ -61,6 +62,9 @@ final class EvaluationResultViewModel {
 
     private var hasLoaded = false
     private let guidanceService: MealGuidanceService
+    /// When set, AI guidance is cached here so reopening the same meal shows the
+    /// identical text instead of the model regenerating a different response.
+    private let modelContext: ModelContext?
     private var pendingEnglish: EnglishGuidance?
     /// Deterministic Indonesian guidance, shown only if the AI pipeline can't
     /// deliver (model unavailable or translation fails) — never during loading.
@@ -71,20 +75,20 @@ final class EvaluationResultViewModel {
     var translationConfig: TranslationSession.Configuration?
     #endif
 
+    /// Designated init: takes a ready-made evaluation (already produced by the
+    /// deterministic `IsiPiringkuEvaluationService`). Used by the real flow,
+    /// where the component screen runs the evaluation before navigating here.
     init(
-        foodName: String,
-        components: [MealComponent],
-        date: Date = .now,
+        evaluation: MealEvaluation,
         imageAssetName: String? = nil,
-        evaluationService: IsiPiringkuEvaluationService = .init(),
+        modelContext: ModelContext? = nil,
         guidanceService: MealGuidanceService = .init()
     ) {
-        self.foodName = foodName
-        self.dateText = DateFormatterHelper.mealTimestamp(from: date)
+        self.foodName = evaluation.mealName
+        self.dateText = DateFormatterHelper.mealTimestamp(from: evaluation.analyzedAt)
         self.imageAssetName = imageAssetName
+        self.modelContext = modelContext
         self.guidanceService = guidanceService
-
-        let evaluation = evaluationService.evaluate(mealName: foodName, components: components)
         self.evaluation = evaluation
 
         self.fallback = guidanceService.fallbackGuidance(for: evaluation)
@@ -93,11 +97,44 @@ final class EvaluationResultViewModel {
         self.recommendation = nil
     }
 
+    /// Convenience init: evaluates raw components first, then defers to the
+    /// designated init. Used by previews and the sample-meal demo screen.
+    convenience init(
+        foodName: String,
+        components: [MealComponent],
+        imageAssetName: String? = nil,
+        modelContext: ModelContext? = nil,
+        evaluationService: IsiPiringkuEvaluationService = .init(),
+        guidanceService: MealGuidanceService = .init()
+    ) {
+        let evaluation = evaluationService.evaluate(mealName: foodName, components: components)
+        self.init(
+            evaluation: evaluation,
+            imageAssetName: imageAssetName,
+            modelContext: modelContext,
+            guidanceService: guidanceService
+        )
+    }
+
     /// Stage 1: get English guidance from the on-device model, then trigger
     /// translation. Keeps the deterministic fallback if the model is absent.
     func load() async {
         guard !hasLoaded else { return }
         hasLoaded = true
+
+        // Already generated once for this meal? Reuse the cached AI guidance so
+        // the text is identical on every reopen (no fresh model call).
+        if let record = fetchRecord(), record.hasAIGuidance {
+            feedback = FeedbackText(
+                headline: record.feedbackHeadline ?? evaluation.overallStatus.displayName,
+                body: record.feedbackBody ?? ""
+            )
+            recommendation = record.recommendation
+            advanceGuidance(to: .translated)
+            isGeneratingGuidance = false
+            NSLog("UPDISH_CACHE: reused stored AI guidance for \"\(evaluation.mealName)\"")
+            return
+        }
 
         #if canImport(Translation)
         // One-time diagnostic: dump every language Apple Translation supports on
@@ -176,6 +213,7 @@ final class EvaluationResultViewModel {
             pendingEnglish = nil
             advanceGuidance(to: .translated)
             isGeneratingGuidance = false
+            persistGuidance()
             NSLog("UPDISH_STAGE2_TRANSLATE: success → \"\(body)\"")
         } catch {
             NSLog("UPDISH_STAGE2_TRANSLATE: FAILED (\(error)) — showing deterministic fallback")
@@ -183,4 +221,28 @@ final class EvaluationResultViewModel {
         }
     }
     #endif
+
+    // MARK: - Caching
+
+    /// Looks up the stored history record for this meal, if persistence is on.
+    private func fetchRecord() -> MealHistoryRecord? {
+        guard let modelContext else { return nil }
+        let id = evaluation.id
+        var descriptor = FetchDescriptor<MealHistoryRecord>(
+            predicate: #Predicate { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    /// Saves the freshly generated AI feedback + recommendation onto the record
+    /// so the next open reuses them. Only called after a successful translation,
+    /// never for the deterministic fallback (which is already stable).
+    private func persistGuidance() {
+        guard let modelContext, let record = fetchRecord() else { return }
+        record.feedbackHeadline = feedback?.headline
+        record.feedbackBody = feedback?.body
+        record.recommendation = recommendation
+        try? modelContext.save()
+    }
 }

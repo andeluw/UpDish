@@ -14,9 +14,9 @@ struct EvaluationCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "lightbulb.fill")
+            Image(systemName: status.iconName)
                 .foregroundStyle(status.accentColor)
-                .font(.system(size: 20))
+                .font(.system(size: 20, weight: .semibold))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(feedback.headline)
@@ -31,7 +31,11 @@ struct EvaluationCard: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(status.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(status.accentColor, lineWidth: 1.5)
+        )
     }
 }
 

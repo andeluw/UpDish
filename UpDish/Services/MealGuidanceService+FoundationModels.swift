@@ -124,6 +124,11 @@ extension MealGuidanceService {
         How to reason:
         - Look at what is already on the plate, then decide which groups are \
         missing or too small.
+        - Distinguish clearly between two cases when you write the feedback: a \
+        group that is PRESENT BUT TOO LITTLE (it is on the plate, but the \
+        portion is small — say it is there and suggest adding more) versus a \
+        group that is COMPLETELY MISSING (not on the plate at all — say it is \
+        not there yet). Never describe these two the same way.
         - Choose common, affordable Indonesian foods that genuinely complete THIS \
         dish so it approaches the Isi Piringku standard.
         - Make each suggestion specific and practical, with a household portion.
@@ -140,6 +145,10 @@ extension MealGuidanceService {
 
         Strict rules:
         - Write everything in English (it will be translated afterwards).
+        - When you talk about a group that is already on the plate, name the \
+        EXACT food the user listed. Never invent, rename, or substitute a \
+        different food for a group that is already present (e.g. do not say \
+        "tempe" when the plate has grilled chicken).
         - NEVER mention calories, grams, or any nutrient amount.
         - Do not suggest anything for a group that is already sufficient.
         - Keep the tone simple, warm, and encouraging.
@@ -149,27 +158,46 @@ extension MealGuidanceService {
     // MARK: Prompt (English only — no Indonesian, or the input guardrail rejects it)
 
     private func prompt(for evaluation: MealEvaluation) -> String {
-        let statuses = evaluation.categoryEvaluations
-            .map { "- \($0.category.englishName): \(statusLabel($0.status))" }
+        // The ACTUAL foods on the plate, so the model talks about what the user
+        // really has instead of inventing a different food for a present group.
+        // `category` is optional: detection may not have classified an item yet,
+        // in which case we still name the food but omit the group label.
+        let plateItems = evaluation.components
+            .map { component -> String in
+                guard let category = component.category else { return "- \(component.name)" }
+                return "- \(component.name) (\(category.englishName))"
+            }
             .joined(separator: "\n")
 
-        let needsImprovement = evaluation.categoriesNeedingImprovement
+        let tooLittle = evaluation.categoryEvaluations
+            .filter { $0.status == .insufficient }
             .map(\.category.englishName)
-            .joined(separator: ", ")
+        let missing = evaluation.categoryEvaluations
+            .filter { $0.status == .missing }
+            .map(\.category.englishName)
 
         return """
-        Here is one Indonesian home-cooked plate, described by its Isi Piringku groups.
+        Here is one Indonesian home-cooked plate.
 
-        Status of each group:
-        \(statuses)
+        Foods actually on the plate right now:
+        \(plateItems.isEmpty ? "(none)" : plateItems)
 
-        Groups that need completing: \(needsImprovement.isEmpty ? "none" : needsImprovement)
+        Groups PRESENT BUT THE PORTION IS TOO SMALL (the food is already there — \
+        say the user has it but should add more of that same food): \
+        \(tooLittle.isEmpty ? "none" : tooLittle.joined(separator: ", "))
+
+        Groups COMPLETELY MISSING (not on the plate at all — suggest adding a \
+        new food): \(missing.isEmpty ? "none" : missing.joined(separator: ", "))
 
         Task:
-        1. feedbackBody: describe the plate's balance warmly.
-        2. recommendationSummary: encourage completing the missing groups.
+        1. feedbackBody: warmly describe the plate. When you mention a group that \
+        is already present, refer to the ACTUAL food listed above — never invent \
+        or swap in a different food for it. For a "too small" group, clearly say \
+        the user already has it but the portion is still small.
+        2. recommendationSummary: encourage completing the too-small and missing groups.
         3. suggestions: give 2-3 food choices with portions for EACH group that \
-        needs completing. Do not suggest for groups that are already present.
+        is TOO SMALL or MISSING. Do not suggest anything for a group that is \
+        already sufficient.
         """
     }
 

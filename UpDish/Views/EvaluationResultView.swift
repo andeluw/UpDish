@@ -23,12 +23,18 @@ struct EvaluationResultView: View {
             VStack(alignment: .leading, spacing: 20) {
                 mealImage
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(viewModel.foodName)
+                        .font(.title2.bold())
                     Text(viewModel.dateText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Text(viewModel.foodName)
-                        .font(.title2.bold())
+                }
+
+                HStack(alignment: .center, spacing: 20) {
+                    IsiPiringkuPlateView(evaluations: viewModel.evaluation.categoryEvaluations)
+                    CategoryChecklistView(evaluations: viewModel.evaluation.categoryEvaluations)
+                    Spacer(minLength: 0)
                 }
 
                 if viewModel.isGeneratingGuidance {
@@ -40,6 +46,15 @@ struct EvaluationResultView: View {
                     )
                 }
 
+                if !viewModel.isGeneratingGuidance, let recommendation = viewModel.recommendation {
+                    RecommendationCard(
+                        recommendation: recommendation,
+                        status: viewModel.evaluation.overallStatus
+                    )
+                }
+
+                disclaimer
+
                 #if DEBUG
                 Label(viewModel.guidanceSource.rawValue, systemImage: "ladybug.fill")
                     .font(.caption2.monospaced())
@@ -49,25 +64,10 @@ struct EvaluationResultView: View {
                     .background(Color(.secondarySystemBackground))
                     .clipShape(Capsule())
                 #endif
-
-                Text("Komposisi Isi Piringku")
-                    .font(.headline)
-
-                HStack(alignment: .center, spacing: 20) {
-                    IsiPiringkuPlateView(evaluations: viewModel.evaluation.categoryEvaluations)
-                    CategoryChecklistView(evaluations: viewModel.evaluation.categoryEvaluations)
-                    Spacer(minLength: 0)
-                }
-
-                if !viewModel.isGeneratingGuidance, let recommendation = viewModel.recommendation {
-                    RecommendationCard(
-                        recommendation: recommendation,
-                        status: viewModel.evaluation.overallStatus
-                    )
-                }
             }
             .padding(20)
         }
+        .background(Color.background.ignoresSafeArea())
         .navigationTitle("Detail Isi Piringku")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.load() }
@@ -76,6 +76,19 @@ struct EvaluationResultView: View {
             await viewModel.translate(using: session)
         }
         #endif
+    }
+
+    /// Closing note that sets expectations about the AI output and points the
+    /// user back to the component screen if a detection was wrong.
+    private var disclaimer: some View {
+        Text(
+            "Hasil analisis AI merupakan estimasi dan mungkin tidak selalu akurat. "
+            + "Jika terdapat komponen yang kurang tepat, Anda dapat mengubahnya "
+            + "pada halaman komponen makanan."
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Shown in the feedback slot while the on-device model + translation run,
