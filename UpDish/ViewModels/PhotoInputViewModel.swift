@@ -52,7 +52,7 @@ final class PhotoInputViewModel {
         }
         #else
         self.init(
-            mealDetectionService: MockMealDetectionService()
+            mealDetectionService: FirebaseAIMealDetectionService()
         )
         #endif
     }
