@@ -127,6 +127,45 @@ final class EvaluationResultViewModel {
             guidanceService: guidanceService
         )
     }
+    
+    convenience init(
+        record: MealHistoryRecord,
+        modelContext: ModelContext? = nil,
+        guidanceService: MealGuidanceService? = nil
+    ) {
+        let evaluation = MealEvaluation(
+            id: record.id,
+            analyzedAt: record.analyzedAt,
+            mealName: record.mealName,
+            components: record.components,
+            categoryEvaluations: record.categoryEvaluations,
+            overallStatus: record.overallStatus,
+            summary: record.summary
+        )
+        
+        self.init(
+            evaluation: evaluation,
+            imageAssetName: nil,
+            modelContext: modelContext,
+            guidanceService: guidanceService
+        )
+        
+        if record.hasAIGuidance {
+            feedback = FeedbackText(
+                headline: record.feedbackHeadline ?? record.overallStatus.displayName,
+                body: record.feedbackBody ?? record.summary
+            )
+            
+            recommendation = record.recommendation
+            guidanceSource = .translated
+        } else {
+            feedback = fallback.feedback
+            recommendation = record.recommendation ?? fallback.recommendation
+        }
+        
+        isGeneratingGuidance = false
+        hasLoaded = true
+    }
 
     /// Stage 1: get English guidance from the on-device model, then trigger
     /// translation. Keeps the deterministic fallback if the model is absent.

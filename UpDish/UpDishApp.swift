@@ -5,6 +5,7 @@
 //  Created by Andrew Wallace on 10/07/26.
 //
 
+import SwiftData
 import SwiftUI
 import SwiftData
 
