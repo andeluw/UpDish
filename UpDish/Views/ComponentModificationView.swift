@@ -128,7 +128,8 @@ struct ComponentModificationView: View {
                                 .font(.caption)
                                 .foregroundColor(.black)
                                 .fontWeight(.medium)
-                                + Text(" \(viewModel.remainingPercentage)%")
+
+                            Text("\(viewModel.remainingPercentage)%")
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundColor(

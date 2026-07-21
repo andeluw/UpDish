@@ -39,7 +39,7 @@ struct UpDishTests {
         #expect(!vm.components.contains(where: { $0.name == "Telur" }))
     }
 
-    @Test("Add: Menambah komponen baru dengan nama default otomatis")
+    @Test("Add: Menambah komponen baru dengan nama kosong untuk diisi pengguna")
     func testAddComponent() {
         let vm = ComponentViewModel()
         vm.components = [
@@ -56,23 +56,8 @@ struct UpDishTests {
         vm.addComponent(portionPercentage: 1)
 
         #expect(vm.components.count == 3)
-        #expect(vm.components.last?.name == "Komponen Baru 1")
-    }
-
-    @Test(
-        "Collision: Otomatis menaikkan indeks nama jika 'Komponen Baru 1' sudah ada"
-    )
-    func testAutoResolveNamingCollision() {
-        let vm = ComponentViewModel()
-        vm.components = [
-            MealComponent(
-                name: "Komponen Baru 1",
-                portionPercentage: 10
-            )
-        ]
-        vm.addComponent(portionPercentage: 5)
-        #expect(vm.components.count == 2)
-        #expect(vm.components.last?.name == "Komponen Baru 2")
+        #expect(vm.components.last?.name == "")
+        #expect(vm.components.last?.portionPercentage == 1)
     }
 
     @Test("Edge Case: Validasi gagal jika daftar makanan kosong")
@@ -104,6 +89,11 @@ struct UpDishTests {
         vm.updateProportion(for: ayamID, to: 20)
         vm.addComponent(portionPercentage: 50)
 
+        if let newComponentID = vm.components.last?.id {
+            vm.updateName(for: newComponentID, to: "Sayur")
+        }
+
+        #expect(vm.remainingPercentage == 0)
         #expect(vm.isDishValid == true)
     }
 
