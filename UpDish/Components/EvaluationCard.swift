@@ -31,10 +31,10 @@ struct EvaluationCard: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(status.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(status.accentColor, lineWidth: 1.5)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(status.accentColor, lineWidth: 2)
         )
         // One phrase: the verdict then the explanation. Skips the status icon,
         // which would otherwise be announced as its symbol name.

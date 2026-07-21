@@ -100,21 +100,34 @@ struct EvaluationResultView: View {
     private var guidanceLoadingCard: some View {
         HStack(spacing: 12) {
             ProgressView()
+                .tint(Self.loadingAccent)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Menganalisis dengan AI…")
                     .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Self.loadingAccent)
                 Text("Menyusun masukan dan rekomendasi untukmu.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Self.loadingBody)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .background(Self.loadingBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Self.loadingBorder, lineWidth: 2)
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Menganalisis dengan AI. Menyusun masukan dan rekomendasi untukmu.")
     }
+
+    // Neutral palette for the AI loading state — it stands in for the feedback
+    // card before a verdict's colours are known, so it stays greyscale.
+    private static let loadingAccent = Color(red: 77 / 255, green: 77 / 255, blue: 77 / 255)      // #4D4D4D
+    private static let loadingBody = Color.black                                                   // #000000
+    private static let loadingBorder = Color(red: 204 / 255, green: 204 / 255, blue: 204 / 255)   // #CCCCCC
+    private static let loadingBackground = Color(red: 239 / 255, green: 239 / 255, blue: 239 / 255) // #EFEFEF
 
     @ViewBuilder
     private var mealImage: some View {
