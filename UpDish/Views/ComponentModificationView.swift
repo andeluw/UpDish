@@ -5,8 +5,8 @@
 //  Created by Evelin Alim Natadjaja on 14/07/26.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ComponentModificationView: View {
     @Environment(\.dismiss) private var dismiss
@@ -28,213 +28,232 @@ struct ComponentModificationView: View {
     /// True while components are being classified and evaluated.
     @State private var isConfirming = false
 
+    /// Dynamic untuk larger text
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    
+    private var buttonLabelLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 4))
+            : AnyLayout(HStackLayout(spacing: 8))
+    }
+
     var body: some View {
         NavigationStack {
-            VStack {
-                // MARK: - SECTION 1: NAMA MENU (EDITABLE)
-                VStack(alignment: .leading) {
-                    HStack {
+            ScrollViewReader { proxy in
+                List {
+                    // MARK: - SECTION 1: NAMA MENU (EDITABLE)
+                    VStack(alignment: .leading) {
                         Text("Nama Menu")
                             .font(.headline)
                             .fontWeight(.bold)
-                            .padding(.horizontal)
-                            .padding(.top)
-                    }
 
-                    HStack {
-                        TextField(
-                            "Masukkan nama menu",
-                            text: $viewModel.mealName
+                        HStack {
+                            TextField(
+                                "Masukkan nama menu",
+                                text: $viewModel.mealName,
+                                axis: .vertical
+                            )
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .lineLimit(1...4)
+                            .frame(minHeight: 48)
+                        }
+                        .padding(.horizontal)
+                        .frame(minHeight: 48)
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color(.textBorder), lineWidth: 2)
                         )
-                        .font(.subheadline)
-                        .fontWeight(.medium)
                     }
-                    .frame(minHeight: 48)
-                    .padding(.horizontal)
-                    .background(Color.white)
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(.textBorder), lineWidth: 2)
+                    .onTapGesture { hideKeyboard() }
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(
+                        EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
                     )
-                    .padding(.horizontal)
-                }
-                .onTapGesture {
-                    hideKeyboard()
-                }
 
-                // MARK: - SECTION 2: KOMPONEN TERDETEKSI
-
-                VStack(alignment: .leading) {
+                    // MARK: - SECTION 2: KOMPONEN TERDETEKSI
                     VStack(alignment: .leading) {
                         Text("Komponen Terdeteksi")
                             .font(.headline)
                             .fontWeight(.bold)
-                    }
-                    .padding(.top)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top)
 
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "lightbulb.max")
-                            .font(.title3)
-                            .foregroundColor(.black)
-                            .accessibilityHidden(true)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Pastikan komponen sudah sesuai")
-                                .font(.footnote)
-                                .fontWeight(.bold)
-                                .foregroundColor(.black)
-
-                            Text(
-                                "Komponen yang tepat akan membantu kami memberikan evaluasi gizi yang akurat."
-                            )
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                            .foregroundColor(.black)
-                        }
-                    }
-                    .padding()
-                    .frame(
-                        maxWidth: .infinity,
-                        minHeight: 68,
-                        alignment: .leading
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(.textBorder), lineWidth: 2)
-                    )
-                    .background(Color.buttonTambah)
-                    .cornerRadius(10)
-                    .padding(.bottom)
-                    .accessibilityElement(children: .combine)
-
-                    HStack(spacing: 4) {
-                        Text("Sisa komposisi yang harus ditambahkan:")
-                            .font(.caption)
-                            .foregroundColor(.black)
-                            .fontWeight(.medium)
-                        Text("\(viewModel.remainingPercentage)%")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(
-                                viewModel.remainingPercentage == 0
-                                    ? .green : .red
-                            )
-                    }
-                    .padding(.bottom, 5)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(
-                        "Sisa komposisi yang harus ditambahkan adalah \(viewModel.remainingPercentage) persen"
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal)
-                .onTapGesture {
-                    hideKeyboard()
-                }
-
-                // MARK: - EDITABLE LIST
-                ScrollViewReader { proxy in
-                    List {
-                        ForEach(viewModel.components.indices, id: \.self) {
-                            index in
-                            let component = viewModel.components[index]
-                            ComponentRowView(
-                                component: component,
-                                onNameChange: { viewModel.updateName(for: component.id, to: $0) },
-                                onProportionChange: { viewModel.updateProportion(for: component.id, to: $0) }
-                            )
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(
-                                EdgeInsets(top: 8, leading: 16, bottom: 6, trailing: 16)
-                            )
-                            .id(component.id)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    withAnimation {
-                                        viewModel.removeComponent(
-                                            at: IndexSet(integer: index)
-                                        )
-                                    }
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .frame(maxHeight: .infinity)
-                                }
-                                .buttonBorderShape(.roundedRectangle(radius: 1))
-                                .accessibilityLabel("Hapus")
-                            }
-                        }
-
-                        // MARK: - Button Tambah
-                        VStack {
-                            Button(action: {
-                                viewModel.addComponent(
-                                    portionPercentage: 1
-                                )
-                            }) {
-                                HStack {
-                                    Image(systemName: "plus")
-                                    Text("Tambah Komponen")
-                                }
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "lightbulb.max")
                                 .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(viewModel.remainingPercentage <= 0 ? .accent.opacity(0.43) : .accent)
-                                .frame(maxWidth: .infinity, minHeight: 57)
-                                .background(Color.buttonTambah)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(viewModel.remainingPercentage <= 0 ? .accent.opacity(0.43) : .accent,
-                                            style: StrokeStyle(
-                                                lineWidth: 2,
-                                                dash: [5]
-                                            )
-                                        )
-                                )
-                            }
-                            .disabled(viewModel.remainingPercentage <= 0)
-                            
-                            HStack {
+                                .foregroundColor(.black)
+                                .accessibilityHidden(true)
+                                .fixedSize()
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Pastikan komponen sudah sesuai")
+                                    .font(.footnote)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.black)
+                                    .fixedSize(
+                                        horizontal: false,
+                                        vertical: true
+                                    )
+
                                 Text(
-                                    "Total komposisi wajib 100%. Kurangi persentase salah satu komponen untuk menambahkan komponen baru."
+                                    "Komponen yang tepat akan membantu kami memberikan evaluasi gizi yang akurat."
                                 )
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundColor(.black)
+                                .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .padding()
+                        .frame(
+                            maxWidth: .infinity,
+                            minHeight: 68,
+                            alignment: .leading
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color(.textBorder), lineWidth: 2)
+                        )
+                        .background(Color.buttonTambah)
+                        .cornerRadius(10)
+                        .padding(.bottom)
+                        .accessibilityElement(children: .combine)
+
+                        HStack(spacing: 4) {
+                            Text("Sisa komposisi yang harus ditambahkan:")
+                                .font(.caption)
+                                .foregroundColor(.black)
+                                .fontWeight(.medium)
+                                + Text(" \(viewModel.remainingPercentage)%")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(
+                                    viewModel.remainingPercentage == 0
+                                        ? .green : .red
+                                )
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 5)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(
+                            "Sisa komposisi yang harus ditambahkan adalah \(viewModel.remainingPercentage) persen"
+                        )
+                        
+                        HStack{
+                            Text("Setiap komponen harus memiliki persentase minimal 1%.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .fontWeight(.medium)
-                                .lineSpacing(0)
-
-                                Spacer()
-                            }
-                            .padding(.vertical, 10)
                         }
-                        .listRowSeparator(.hidden)
-                        .id("BOTTOM_ANCHOR")
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .onTapGesture { hideKeyboard() }
                     .listRowSeparator(.hidden)
-                    .onChange(of: viewModel.components.count) {
-                        oldCount,
-                        newCount in
-                        guard oldCount > 0 else { return }
-                        if newCount > oldCount {
-                            DispatchQueue.main.asyncAfter(
-                                deadline: .now() + 0.1
-                            ) {
-                                withAnimation(.easeOut(duration: 0.3)) {
-                                    proxy.scrollTo(
-                                        "BOTTOM_ANCHOR",
-                                        anchor: .bottom
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(
+                        EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
+                    )
+
+                    // MARK: - EDITABLE LIST
+                    ForEach(viewModel.components.indices, id: \.self) { index in
+                        let component = viewModel.components[index]
+                        ComponentRowView(
+                            component: component,
+                            onNameChange: {
+                                viewModel.updateName(for: component.id, to: $0)
+                            },
+                            onProportionChange: {
+                                viewModel.updateProportion(
+                                    for: component.id,
+                                    to: $0
+                                )
+                            }
+                        )
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(
+                            EdgeInsets(
+                                top: 8,
+                                leading: 16,
+                                bottom: 6,
+                                trailing: 16
+                            )
+                        )
+                        .id(component.id)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                withAnimation {
+                                    viewModel.removeComponent(
+                                        at: IndexSet(integer: index)
                                     )
                                 }
+                            } label: {
+                                Label("Hapus", systemImage: "trash")
                             }
+                            .buttonBorderShape(.roundedRectangle(radius: 1))
+                            .accessibilityLabel("Hapus")
                         }
                     }
 
+                    // MARK: - Button Tambah
+                    VStack {
+                        Button(action: {
+                            viewModel.addComponent(portionPercentage: 1)
+                        }) {
+                            buttonLabelLayout {
+                                Image(systemName: "plus")
+                                Text("Tambah Komponen")
+                                    .multilineTextAlignment(.center)
+                            }
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundColor(viewModel.remainingPercentage <= 0 ? .accent.opacity(0.43) : .accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 10 : 0)
+                            .frame(minHeight: 54)
+                            .background(Color(.buttonTambah))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(viewModel.remainingPercentage <= 0 ? .accent.opacity(0.43) : .accent, style: StrokeStyle(lineWidth: 2, dash: [4]))
+                            )
+                        }
+                        .disabled(viewModel.remainingPercentage <= 0)
+
+                        HStack {
+                            Text(
+                                "Total komposisi wajib 100%. Kurangi persentase salah satu komponen untuk menambahkan komponen baru."
+                            )
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fontWeight(.medium)
+                            .lineSpacing(0)
+                            Spacer()
+                        }
+                        .padding(.vertical, 10)
+                    }
+                    .listRowSeparator(.hidden)
+                    .id("BOTTOM_ANCHOR")
                 }
                 .listStyle(.inset)
                 .background(Color.clear)
                 .scrollDismissesKeyboard(.interactively)
-
+                .onChange(of: viewModel.components.count) {
+                    oldCount,
+                    newCount in
+                    guard oldCount > 0 else { return }
+                    if newCount > oldCount {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                proxy.scrollTo("BOTTOM_ANCHOR", anchor: .bottom)
+                            }
+                        }
+                    }
+                }
             }
             .padding(.horizontal, 10)
             .navigationTitle("Komponen Makanan")
@@ -263,8 +282,8 @@ struct ComponentModificationView: View {
                     // once confirmed — preventing a repeated confirmation.
                     .disabled(
                         !viewModel.isDishValid
-                        || confirmedEvaluation != nil
-                        || isConfirming
+                            || confirmedEvaluation != nil
+                            || isConfirming
                     )
                 }
             }
@@ -302,7 +321,9 @@ struct ComponentModificationView: View {
     private func persist(_ evaluation: MealEvaluation) {
         let result = MealResult(
             evaluation: evaluation,
-            recommendation: recommendationService.recommendation(for: evaluation)
+            recommendation: recommendationService.recommendation(
+                for: evaluation
+            )
         )
         modelContext.insert(MealHistoryRecord(result: result))
         try? modelContext.save()
@@ -313,6 +334,14 @@ struct ComponentRowView: View {
     let component: MealComponent
     let onNameChange: (String) -> Void
     let onProportionChange: (Int) -> Void
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var dynamicLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+    }
 
     private var nameBinding: Binding<String> {
         Binding(
@@ -329,30 +358,51 @@ struct ComponentRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            TextField("Nama Komponen", text: nameBinding)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .frame(minHeight: 40)
-                .accessibilityLabel("Nama komponen")
-                .accessibilityValue(component.name.isEmpty ? "kosong" : component.name)
+        dynamicLayout {
+            nameField
 
-            Spacer()
+            if !dynamicTypeSize.isAccessibilitySize {
+                Spacer(minLength: 8)
+            }
 
+            portionField
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 12 : 0)
+        .frame(minHeight: 54)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color(.textBorder), lineWidth: 2)
+        )
+    }
+
+    private var nameField: some View {
+        TextField("Masukkan nama komponen", text: nameBinding)
+            .font(.subheadline)
+            .fontWeight(.medium)
+            .frame(minHeight: 40)
+            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, alignment: .leading)
+            .layoutPriority(1)
+            .accessibilityLabel("Nama komponen")
+            .accessibilityValue(component.name.isEmpty ? "kosong" : component.name)
+    }
+
+    private var portionField: some View {
+        HStack(spacing: 4) {
             TextField("", value: portionBinding, format: .number)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.center)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .frame(width: 41, height: 30)
+                .frame(minWidth: 41, minHeight: 30)
+                .padding(.horizontal, 6)
                 .background(Color.white)
                 .cornerRadius(10)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(
-                            Color(.textBorder),
-                            lineWidth: 2
-                        )
+                        .stroke(Color(.textBorder), lineWidth: 2)
                 )
                 .accessibilityLabel("Persentase porsi")
                 .accessibilityValue("\(component.portionPercentage) persen")
@@ -362,14 +412,7 @@ struct ComponentRowView: View {
                 .foregroundColor(.black)
                 .accessibilityHidden(true)
         }
-        .frame(minHeight: 54)
-        .padding(.horizontal, 14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color(.textBorder), lineWidth: 2)
-        )
+        .fixedSize(horizontal: true, vertical: false)
     }
 }
 
@@ -387,7 +430,7 @@ extension View {
 #Preview {
     ComponentModificationView(
         draft: MealDraft(
-            mealName: "Nasi Ayam Sayur",
+            mealName: "Nasi Ayam Sayur mantap gas",
             components: [
                 MealComponent(
                     name: "Nasi Putih",
