@@ -6,16 +6,27 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ComponentModificationView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: ComponentViewModel
-    
+
     init(draft: MealDraft) {
         _viewModel = StateObject(
             wrappedValue: ComponentViewModel(draft: draft)
         )
     }
+
+    private let recommendationService = RecommendationService()
+
+    /// Set once the user confirms — drives navigation to the result screen and
+    /// doubles as the "already confirmed" guard against repeated submits.
+    @State private var confirmedEvaluation: MealEvaluation?
+
+    /// True while components are being classified and evaluated.
+    @State private var isConfirming = false
 
     var body: some View {
         NavigationStack {
@@ -270,28 +281,63 @@ struct ComponentModificationView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        
-                        let mealDraft = MealDraft(
-                            mealName: viewModel.mealName.trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            ),
-                            components: viewModel.components
-                        )
-                        
-                        print(
-                            "Komponen selesai diedit untuk menu: \(mealDraft.mealName)"
-                        )
-                        
-                        // TODO: update submit untuk evaluasi
+                        Task { await confirm() }
                     } label: {
-                        Image(systemName: "checkmark")
-                            .bold()
+                        if isConfirming {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "checkmark")
+                                .bold()
+                        }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(!viewModel.isDishValid)
+                    // Disabled while the list is invalid, while confirming, and
+                    // once confirmed — preventing a repeated confirmation.
+                    .disabled(
+                        !viewModel.isDishValid
+                        || confirmedEvaluation != nil
+                        || isConfirming
+                    )
                 }
             }
+            .navigationDestination(item: $confirmedEvaluation) { evaluation in
+                EvaluationResultView(
+                    viewModel: EvaluationResultViewModel(
+                        evaluation: evaluation,
+                        modelContext: modelContext
+                    )
+                )
+            }
         }
+    }
+
+    /// Runs the real Isi Piringku evaluation on the corrected components,
+    /// saves it to history (food name + components + recommendation), and
+    /// navigates to the result screen (where the Foundation Model pipeline runs
+    /// automatically). Guarded so a double-tap can't confirm twice.
+    private func confirm() async {
+        guard confirmedEvaluation == nil, !isConfirming else { return }
+
+        isConfirming = true
+        defer { isConfirming = false }
+
+        // Classifies the detected components into Isi Piringku groups first,
+        // otherwise nothing would count toward the plate.
+        let evaluation = await viewModel.makeEvaluation()
+        persist(evaluation)
+        confirmedEvaluation = evaluation
+    }
+
+    /// Stores the analyzed meal so it appears in the Home history. The
+    /// recommendation saved here is the deterministic one; the result screen
+    /// still shows the Foundation Model's version live.
+    private func persist(_ evaluation: MealEvaluation) {
+        let result = MealResult(
+            evaluation: evaluation,
+            recommendation: recommendationService.recommendation(for: evaluation)
+        )
+        modelContext.insert(MealHistoryRecord(result: result))
+        try? modelContext.save()
     }
 }
 
@@ -344,4 +390,5 @@ extension View {
             ]
         )
     )
+    .modelContainer(for: MealHistoryRecord.self, inMemory: true)
 }

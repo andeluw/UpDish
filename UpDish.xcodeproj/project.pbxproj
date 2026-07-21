@@ -147,10 +147,11 @@
 				};
 			};
 			buildConfigurationList = E721B3EA3000286C0050E8BA /* Build configuration list for PBXProject "UpDish" */;
-			developmentRegion = en;
+			developmentRegion = id;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				id,
 				Base,
 			);
 			mainGroup = E721B3E63000286C0050E8BA;

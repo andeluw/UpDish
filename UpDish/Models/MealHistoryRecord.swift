@@ -18,12 +18,24 @@ final class MealHistoryRecord {
     var overallStatus: MealBalanceStatus
     var summary: String
     var imageFileName: String?
-    
+
     var components: [MealComponent]
-    
+
     var categoryEvaluations: [CategoryEvaluation]
     var recommendation: MealRecommendation?
-    
+
+    /// The AI-generated feedback (already translated to Indonesian), cached so
+    /// reopening the same meal shows the exact same text instead of the model
+    /// generating a fresh, different response each time. Nil until the
+    /// Foundation Model + translation pipeline has succeeded once.
+    var feedbackHeadline: String?
+    var feedbackBody: String?
+
+    /// True once the AI feedback has been generated and stored.
+    var hasAIGuidance: Bool {
+        !(feedbackBody?.isEmpty ?? true)
+    }
+
     init(
         id: UUID = UUID(),
         analyzedAt: Date = Date(),
@@ -33,7 +45,9 @@ final class MealHistoryRecord {
         imageFileName: String? = nil,
         components: [MealComponent],
         categoryEvaluations: [CategoryEvaluation],
-        recommendation: MealRecommendation? = nil
+        recommendation: MealRecommendation? = nil,
+        feedbackHeadline: String? = nil,
+        feedbackBody: String? = nil
     ) {
         self.id = id
         self.analyzedAt = analyzedAt
@@ -44,6 +58,8 @@ final class MealHistoryRecord {
         self.components = components
         self.categoryEvaluations = categoryEvaluations
         self.recommendation = recommendation
+        self.feedbackHeadline = feedbackHeadline
+        self.feedbackBody = feedbackBody
     }
 }
 

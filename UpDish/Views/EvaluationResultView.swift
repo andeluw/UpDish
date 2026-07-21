@@ -23,12 +23,20 @@ struct EvaluationResultView: View {
             VStack(alignment: .leading, spacing: 20) {
                 mealImage
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(viewModel.foodName)
+                        .font(.title2.bold())
+                        .accessibilityLabel(viewModel.foodName)
                     Text(viewModel.dateText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Text(viewModel.foodName)
-                        .font(.title2.bold())
+                        .accessibilityLabel(viewModel.dateAccessibilityText)
+                }
+
+                HStack(alignment: .center, spacing: 20) {
+                    IsiPiringkuPlateView(evaluations: viewModel.evaluation.categoryEvaluations)
+                    CategoryChecklistView(evaluations: viewModel.evaluation.categoryEvaluations)
+                    Spacer(minLength: 0)
                 }
 
                 if viewModel.isGeneratingGuidance {
@@ -40,6 +48,15 @@ struct EvaluationResultView: View {
                     )
                 }
 
+                if !viewModel.isGeneratingGuidance, let recommendation = viewModel.recommendation {
+                    RecommendationCard(
+                        recommendation: recommendation,
+                        status: viewModel.evaluation.overallStatus
+                    )
+                }
+
+                disclaimer
+
                 #if DEBUG
                 Label(viewModel.guidanceSource.rawValue, systemImage: "ladybug.fill")
                     .font(.caption2.monospaced())
@@ -48,26 +65,12 @@ struct EvaluationResultView: View {
                     .padding(.vertical, 4)
                     .background(Color(.secondarySystemBackground))
                     .clipShape(Capsule())
+                    .accessibilityHidden(true)
                 #endif
-
-                Text("Komposisi Isi Piringku")
-                    .font(.headline)
-
-                HStack(alignment: .center, spacing: 20) {
-                    IsiPiringkuPlateView(evaluations: viewModel.evaluation.categoryEvaluations)
-                    CategoryChecklistView(evaluations: viewModel.evaluation.categoryEvaluations)
-                    Spacer(minLength: 0)
-                }
-
-                if !viewModel.isGeneratingGuidance, let recommendation = viewModel.recommendation {
-                    RecommendationCard(
-                        recommendation: recommendation,
-                        status: viewModel.evaluation.overallStatus
-                    )
-                }
             }
             .padding(20)
         }
+        .background(Color.background.ignoresSafeArea())
         .navigationTitle("Detail Isi Piringku")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.load() }
@@ -76,6 +79,20 @@ struct EvaluationResultView: View {
             await viewModel.translate(using: session)
         }
         #endif
+    }
+
+    /// Closing note that sets expectations about the AI output and points the
+    /// user back to the component screen if a detection was wrong.
+    private var disclaimer: some View {
+        let text = "Hasil analisis AI merupakan estimasi dan mungkin tidak selalu akurat. "
+            + "Jika terdapat komponen yang kurang tepat, Anda dapat mengubahnya "
+            + "pada halaman komponen makanan."
+
+        return Text(text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityLabel(text)
     }
 
     /// Shown in the feedback slot while the on-device model + translation run,
@@ -95,6 +112,8 @@ struct EvaluationResultView: View {
         .padding(16)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Menganalisis dengan AI. Menyusun masukan dan rekomendasi untukmu.")
     }
 
     @ViewBuilder
@@ -116,6 +135,7 @@ struct EvaluationResultView: View {
         .frame(height: 200)
         .frame(maxWidth: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .accessibilityLabel("Foto \(viewModel.foodName)")
     }
 }
 
