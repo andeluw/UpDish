@@ -18,23 +18,30 @@ struct RecommendationCard: View {
             Image(systemName: "wand.and.sparkles.inverse")
                 .foregroundStyle(.primary)
                 .font(.system(size: 20))
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 10) {
                 Text(recommendation.title)
                     .font(.headline)
                     .foregroundStyle(.primary)
+                    .accessibilityLabel(recommendation.title)
 
                 Text(recommendation.message)
                     .font(.subheadline)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(recommendation.message)
 
                 ForEach(recommendation.groups) { group in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(header(for: group))
                             .font(.subheadline)
+                            .accessibilityLabel(header(for: group))
                         ForEach(group.options) { option in
                             Text("• \(label(for: option))")
                                 .font(.subheadline)
+                                // Drops the bullet and the em dash, which are
+                                // announced literally ("bullet", "dash").
+                                .accessibilityLabel(spokenLabel(for: option))
                         }
                     }
                 }
@@ -43,6 +50,7 @@ struct RecommendationCard: View {
                     Text(closingNote)
                         .font(.subheadline)
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel(closingNote)
                 }
             }
         }
@@ -79,6 +87,14 @@ struct RecommendationCard: View {
         option.portionDescription.isEmpty
             ? option.name
             : "\(option.name) — \(option.portionDescription)"
+    }
+
+    /// Same content as `label(for:)` but punctuated for speech: a comma reads
+    /// as a natural pause, where "•" and "—" are spoken as symbol names.
+    private func spokenLabel(for option: RecommendationOption) -> String {
+        option.portionDescription.isEmpty
+            ? option.name
+            : "\(option.name), \(option.portionDescription)"
     }
 }
 

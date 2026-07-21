@@ -36,6 +36,10 @@ struct EvaluationCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(status.accentColor, lineWidth: 1.5)
         )
+        // One phrase: the verdict then the explanation. Skips the status icon,
+        // which would otherwise be announced as its symbol name.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(feedback.headline). \(feedback.body)")
     }
 }
 

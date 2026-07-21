@@ -22,6 +22,12 @@ struct CategoryChecklistView: View {
                         .font(.subheadline)
                         .foregroundStyle(.primary)
                 }
+                // Read as one phrase — "Makanan Pokok sudah sesuai" — instead of
+                // announcing the tick/cross symbol and the name separately.
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(
+                    "\(evaluation.category.checklistName) \(spokenStatus(for: evaluation.status))"
+                )
             }
         }
     }
@@ -32,6 +38,11 @@ struct CategoryChecklistView: View {
     /// paragraph, not with a separate (yellow) icon.
     private func icon(for status: CategoryStatus) -> CategoryStatus {
         status == .sufficient ? .sufficient : .missing
+    }
+
+    /// Spoken equivalent of the tick / cross, matching the binary the icon shows.
+    private func spokenStatus(for status: CategoryStatus) -> String {
+        status == .sufficient ? "sudah sesuai" : "belum sesuai"
     }
 }
 

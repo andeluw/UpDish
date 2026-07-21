@@ -26,9 +26,11 @@ struct EvaluationResultView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(viewModel.foodName)
                         .font(.title2.bold())
+                        .accessibilityLabel(viewModel.foodName)
                     Text(viewModel.dateText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                        .accessibilityLabel(viewModel.dateAccessibilityText)
                 }
 
                 HStack(alignment: .center, spacing: 20) {
@@ -63,6 +65,7 @@ struct EvaluationResultView: View {
                     .padding(.vertical, 4)
                     .background(Color(.secondarySystemBackground))
                     .clipShape(Capsule())
+                    .accessibilityHidden(true)
                 #endif
             }
             .padding(20)
@@ -81,14 +84,15 @@ struct EvaluationResultView: View {
     /// Closing note that sets expectations about the AI output and points the
     /// user back to the component screen if a detection was wrong.
     private var disclaimer: some View {
-        Text(
-            "Hasil analisis AI merupakan estimasi dan mungkin tidak selalu akurat. "
+        let text = "Hasil analisis AI merupakan estimasi dan mungkin tidak selalu akurat. "
             + "Jika terdapat komponen yang kurang tepat, Anda dapat mengubahnya "
             + "pada halaman komponen makanan."
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
+
+        return Text(text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityLabel(text)
     }
 
     /// Shown in the feedback slot while the on-device model + translation run,
@@ -108,6 +112,8 @@ struct EvaluationResultView: View {
         .padding(16)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Menganalisis dengan AI. Menyusun masukan dan rekomendasi untukmu.")
     }
 
     @ViewBuilder
@@ -129,6 +135,7 @@ struct EvaluationResultView: View {
         .frame(height: 200)
         .frame(maxWidth: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .accessibilityLabel("Foto \(viewModel.foodName)")
     }
 }
 

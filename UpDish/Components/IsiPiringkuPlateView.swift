@@ -84,6 +84,9 @@ struct IsiPiringkuPlateView: View {
             }
         }
         .frame(width: diameter, height: diameter)
+        // Decorative: the checklist next to it already states every group's
+        // status, so announcing the plate too would just repeat it.
+        .accessibilityHidden(true)
     }
 
     /// The programmatic wedge plate, used whenever an illustrated asset for the

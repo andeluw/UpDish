@@ -23,6 +23,9 @@ import Translation
 final class EvaluationResultViewModel {
     let foodName: String
     let dateText: String
+    /// Spoken form of `dateText`, which contains a "|" a screen reader would
+    /// otherwise announce literally.
+    let dateAccessibilityText: String
     let imageAssetName: String?
 
     let evaluation: MealEvaluation
@@ -78,14 +81,22 @@ final class EvaluationResultViewModel {
     /// Designated init: takes a ready-made evaluation (already produced by the
     /// deterministic `IsiPiringkuEvaluationService`). Used by the real flow,
     /// where the component screen runs the evaluation before navigating here.
+    /// Services are passed as optionals rather than defaulted to `.init()`:
+    /// default argument expressions are evaluated in a nonisolated context, and
+    /// the project defaults types to `@MainActor`, so `= .init()` would warn.
     init(
         evaluation: MealEvaluation,
         imageAssetName: String? = nil,
         modelContext: ModelContext? = nil,
-        guidanceService: MealGuidanceService = .init()
+        guidanceService: MealGuidanceService? = nil
     ) {
+        let guidanceService = guidanceService ?? MealGuidanceService()
+
         self.foodName = evaluation.mealName
         self.dateText = DateFormatterHelper.mealTimestamp(from: evaluation.analyzedAt)
+        self.dateAccessibilityText = DateFormatterHelper.spokenMealTimestamp(
+            from: evaluation.analyzedAt
+        )
         self.imageAssetName = imageAssetName
         self.modelContext = modelContext
         self.guidanceService = guidanceService
@@ -104,9 +115,10 @@ final class EvaluationResultViewModel {
         components: [MealComponent],
         imageAssetName: String? = nil,
         modelContext: ModelContext? = nil,
-        evaluationService: IsiPiringkuEvaluationService = .init(),
-        guidanceService: MealGuidanceService = .init()
+        evaluationService: IsiPiringkuEvaluationService? = nil,
+        guidanceService: MealGuidanceService? = nil
     ) {
+        let evaluationService = evaluationService ?? IsiPiringkuEvaluationService()
         let evaluation = evaluationService.evaluate(mealName: foodName, components: components)
         self.init(
             evaluation: evaluation,

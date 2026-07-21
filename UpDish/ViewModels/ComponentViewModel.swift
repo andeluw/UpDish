@@ -75,9 +75,12 @@ class ComponentViewModel: ObservableObject {
     /// nil dan seluruh piring dihitung kosong.
     @MainActor
     func makeEvaluation(
-        classifier: MealComponentClassifier = .init(),
-        using service: IsiPiringkuEvaluationService = .init()
+        classifier: MealComponentClassifier? = nil,
+        using service: IsiPiringkuEvaluationService? = nil
     ) async -> MealEvaluation {
+        let classifier = classifier ?? MealComponentClassifier()
+        let service = service ?? IsiPiringkuEvaluationService()
+
         // Simpan hasil klasifikasi agar ikut tersimpan di riwayat.
         components = await classifier.classify(components)
 
