@@ -132,40 +132,40 @@ struct IsiPiringkuGuideView: View {
                     .position(x: centerX, y: 148)
 
                 connector(
-                    from: CGPoint(x: 58, y: 62),
-                    to: CGPoint(x: centerX - plateSize * 0.31, y: 98),
+                    from: CGPoint(x: centerX - plateSize * 0.48, y: 88),
+                    to: CGPoint(x: centerX - plateSize * 0.31, y: 104),
                     color: connectorColor
                 )
 
                 connector(
-                    from: CGPoint(x: width - 58, y: 65),
-                    to: CGPoint(x: centerX + plateSize * 0.31, y: 101),
+                    from: CGPoint(x: centerX + plateSize * 0.48, y: 90),
+                    to: CGPoint(x: centerX + plateSize * 0.31, y: 106),
                     color: connectorColor
                 )
 
                 connector(
-                    from: CGPoint(x: 56, y: 238),
-                    to: CGPoint(x: centerX - plateSize * 0.30, y: 211),
+                    from: CGPoint(x: centerX - plateSize * 0.48, y: 215),
+                    to: CGPoint(x: centerX - plateSize * 0.30, y: 202),
                     color: connectorColor
                 )
 
                 connector(
-                    from: CGPoint(x: width - 58, y: 242),
-                    to: CGPoint(x: centerX + plateSize * 0.31, y: 216),
+                    from: CGPoint(x: centerX + plateSize * 0.48, y: 218),
+                    to: CGPoint(x: centerX + plateSize * 0.31, y: 205),
                     color: connectorColor
                 )
 
                 diagramLabel("Lauk-pauk", alignment: .leading)
-                    .position(x: 58, y: 39)
+                    .position(x: 70, y: 60)
 
-                diagramLabel("Buah-buahan", alignment: .leading)
-                    .position(x: width - 55, y: 39)
+                diagramLabel("Buah-\nbuahan", alignment: .leading)
+                    .position(x: width - 30, y: 60)
 
                 diagramLabel("Makanan Pokok", alignment: .leading)
-                    .position(x: 62, y: 262)
+                    .position(x: 74, y: 245)
 
                 diagramLabel("Sayuran", alignment: .leading)
-                    .position(x: width - 58, y: 262)
+                    .position(x: width - 45, y: 240)
             }
         }
         .frame(height: 280)
@@ -287,7 +287,7 @@ struct IsiPiringkuGuideView: View {
     private var principleSection: some View {
         VStack(spacing: 16) {
             Text("Prinsip Isi Piringku")
-                .font(.title2.weight(.semibold))
+                .font(.callout.weight(.semibold))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
