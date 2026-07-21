@@ -19,8 +19,11 @@ struct IsiPiringkuGuideView: View {
     private let proteinColor = Color(red: 0.95, green: 0.42, blue: 0.44)
     private let stapleColor = Color(red: 0.95, green: 0.64, blue: 0.12)
     private let vegetableColor = Color(red: 0.43, green: 0.66, blue: 0.29)
+    private let connectorColor = Color.black
     private let cardBorderColor = Color(red: 0.89, green: 0.86, blue: 0.80)
     private let portionBackground = Color(red: 0.91, green: 0.88, blue: 0.82)
+    private let tableHorizontalPadding: CGFloat = 16
+    private let tableFirstColumnWidth: CGFloat = 108
 
     // Loads the `Piringku` asset by default while still allowing a custom image or nil for testing.
     init(plateImage: Image? = Image("Piringku")) {
@@ -49,6 +52,10 @@ struct IsiPiringkuGuideView: View {
         }
         .scrollIndicators(.hidden)
         .background(pageBackground.ignoresSafeArea())
+        // Supports the VoiceOver two-finger Z gesture to close this guide.
+        .accessibilityAction(.escape) {
+            dismiss()
+        }
     }
 
     // MARK: - Header
@@ -127,25 +134,25 @@ struct IsiPiringkuGuideView: View {
                 connector(
                     from: CGPoint(x: 58, y: 62),
                     to: CGPoint(x: centerX - plateSize * 0.31, y: 98),
-                    color: proteinColor
+                    color: connectorColor
                 )
 
                 connector(
                     from: CGPoint(x: width - 58, y: 65),
                     to: CGPoint(x: centerX + plateSize * 0.31, y: 101),
-                    color: proteinColor
+                    color: connectorColor
                 )
 
                 connector(
                     from: CGPoint(x: 56, y: 238),
                     to: CGPoint(x: centerX - plateSize * 0.30, y: 211),
-                    color: stapleColor
+                    color: connectorColor
                 )
 
                 connector(
                     from: CGPoint(x: width - 58, y: 242),
                     to: CGPoint(x: centerX + plateSize * 0.31, y: 216),
-                    color: vegetableColor
+                    color: connectorColor
                 )
 
                 diagramLabel("Lauk-pauk", alignment: .leading)
@@ -253,7 +260,7 @@ struct IsiPiringkuGuideView: View {
         }
     }
 
-    // Draws a colored connector line and endpoint between a label and the plate.
+    // Draws a black connector line and endpoint between a label and the plate.
     private func connector(
         from start: CGPoint,
         to end: CGPoint,
@@ -276,7 +283,7 @@ struct IsiPiringkuGuideView: View {
 
     // MARK: - Principles
 
-    // Builds the principle title and the four food-category information cards.
+    // Builds the principle title and one grouped container with four information rows.
     private var principleSection: some View {
         VStack(spacing: 16) {
             Text("Prinsip Isi Piringku")
@@ -285,44 +292,80 @@ struct IsiPiringkuGuideView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 0) {
                 principleCard(
                     title: "Makanan Pokok",
                     portion: "1/3 piring",
+                    spokenPortion: "sepertiga piring",
                     description: "Pilih sumber karbohidrat yang berkualitas, seperti nasi, jagung, umbi, atau sagu."
                 )
+
+                principleDivider
 
                 principleCard(
                     title: "Lauk Pauk",
                     portion: "1/6 piring",
+                    spokenPortion: "seperenam piring",
                     description: "Pilih lauk sumber protein seperti ikan, ayam, telur, tahu, tempe, atau kacang-kacangan."
                 )
+
+                principleDivider
 
                 principleCard(
                     title: "Sayuran",
                     portion: "1/3 piring",
+                    spokenPortion: "sepertiga piring",
                     description: "Pilih beragam sayuran dengan warna yang berbeda untuk mendapatkan vitamin dan mineral."
                 )
+
+                principleDivider
 
                 principleCard(
                     title: "Buah-buahan",
                     portion: "1/6 piring",
+                    spokenPortion: "seperenam piring",
                     description: "Pilih berbagai jenis buah segar sebagai sumber vitamin, mineral, dan serat."
                 )
+            }
+            .background(
+                Color.white.opacity(0.72),
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(cardBorderColor, lineWidth: 1.5)
+            }
+            .overlay(alignment: .leading) {
+                if !usesExpandedLayout {
+                    Rectangle()
+                        .fill(cardBorderColor)
+                        .frame(width: 2)
+                        .padding(.vertical, 12)
+                        .offset(x: tableHorizontalPadding + tableFirstColumnWidth)
+                        .accessibilityHidden(true)
+                }
             }
         }
         .padding(.horizontal, usesExpandedLayout ? 20 : 28)
     }
 
-    // Creates one adaptive principle card for a food category.
+    // Draws a straight separator without adding a border around each row.
+    private var principleDivider: some View {
+        Rectangle()
+            .fill(cardBorderColor)
+            .frame(height: 1)
+            .padding(.horizontal, tableHorizontalPadding)
+            .accessibilityHidden(true)
+    }
+
+    // Creates one adaptive row and provides a natural Indonesian VoiceOver pronunciation.
     @ViewBuilder
     private func principleCard(
         title: String,
         portion: String,
+        spokenPortion: String,
         description: String
     ) -> some View {
-        let cardShape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-
         Group {
             if usesExpandedLayout {
                 VStack(alignment: .leading, spacing: 18) {
@@ -334,30 +377,26 @@ struct IsiPiringkuGuideView: View {
                     cardDescription(description)
                 }
             } else {
-                HStack(alignment: .center, spacing: 10) {
+                HStack(alignment: .center, spacing: 0) {
                     cardIdentity(title: title, portion: portion)
-                        .frame(width: 108, alignment: .leading)
+                        .frame(width: tableFirstColumnWidth, alignment: .leading)
 
-                    Rectangle()
-                        .fill(cardBorderColor)
+                    Color.clear
                         .frame(width: 2)
 
                     cardDescription(description)
+                        .padding(.leading, 12)
                 }
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, tableHorizontalPadding)
         .padding(.vertical, usesExpandedLayout ? 14 : 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.72), in: cardShape)
-        .overlay {
-            cardShape.stroke(cardBorderColor, lineWidth: 1.5)
-        }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title), \(portion). \(description)")
+        .accessibilityLabel("\(title), \(spokenPortion). \(description)")
     }
 
-    // Creates the category title and colored portion badge inside a card.
+    // Creates the category title and portion badge inside a card.
     private func cardIdentity(
         title: String,
         portion: String
