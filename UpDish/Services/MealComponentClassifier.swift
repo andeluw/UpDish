@@ -61,8 +61,14 @@ struct MealComponentClassifier {
     /// come first because several of their names contain staple/protein
     /// substrings (e.g. "kubis" contains "ubi").
     private static let keywords: [(match: String, category: FoodCategory)] = [
+        // Ambiguous phrases, resolved before the single words they contain.
+        ("kacang panjang", .vegetable),  // "kacang" alone is a protein side
+        ("salad buah", .fruit),          // "salad" alone is a vegetable
+        ("sup buah", .fruit),
+        ("kacang polong", .vegetable),
+        ("tongkol", .protein),           // contains "kol", a vegetable
+
         // Sayuran
-        ("kacang panjang", .vegetable),
         ("sayur", .vegetable), ("bayam", .vegetable), ("kangkung", .vegetable),
         ("sawi", .vegetable), ("brokoli", .vegetable), ("wortel", .vegetable),
         ("buncis", .vegetable), ("kubis", .vegetable), ("kol", .vegetable),
@@ -70,7 +76,11 @@ struct MealComponentClassifier {
         ("capcay", .vegetable), ("urap", .vegetable), ("lalapan", .vegetable),
         ("tauge", .vegetable), ("toge", .vegetable), ("jamur", .vegetable),
         ("labu", .vegetable), ("pare", .vegetable), ("selada", .vegetable),
-        ("oyong", .vegetable), ("daun", .vegetable),
+        ("oyong", .vegetable), ("daun", .vegetable), ("salad", .vegetable),
+        ("asparagus", .vegetable), ("paprika", .vegetable), ("rebung", .vegetable),
+        ("pakcoy", .vegetable), ("caisim", .vegetable), ("seledri", .vegetable),
+        ("lobak", .vegetable), ("okra", .vegetable), ("gambas", .vegetable),
+        ("nangka muda", .vegetable), ("bunga kol", .vegetable),
 
         // Buah-buahan
         ("buah", .fruit), ("pisang", .fruit), ("pepaya", .fruit),
@@ -79,6 +89,11 @@ struct MealComponentClassifier {
         ("anggur", .fruit), ("alpukat", .fruit), ("salak", .fruit),
         ("rambutan", .fruit), ("jambu", .fruit), ("stroberi", .fruit),
         ("kiwi", .fruit), ("belimbing", .fruit), ("duku", .fruit),
+        ("beri", .fruit), ("berry", .fruit), ("naga", .fruit),
+        ("kelengkeng", .fruit), ("leci", .fruit), ("sirsak", .fruit),
+        ("markisa", .fruit), ("kurma", .fruit), ("manggis", .fruit),
+        ("durian", .fruit), ("sawo", .fruit), ("nangka", .fruit),
+        ("delima", .fruit), ("plum", .fruit),
 
         // Makanan pokok
         ("nasi", .stapleFood), ("kentang", .stapleFood), ("jagung", .stapleFood),
@@ -86,15 +101,28 @@ struct MealComponentClassifier {
         ("bihun", .stapleFood), ("mie", .stapleFood), ("pasta", .stapleFood),
         ("lontong", .stapleFood), ("ketupat", .stapleFood), ("sagu", .stapleFood),
         ("talas", .stapleFood), ("bubur", .stapleFood), ("oat", .stapleFood),
+        ("bulgur", .stapleFood), ("quinoa", .stapleFood), ("beras", .stapleFood),
+        ("kwetiau", .stapleFood), ("makaroni", .stapleFood), ("spageti", .stapleFood),
+        ("spaghetti", .stapleFood), ("sereal", .stapleFood), ("havermut", .stapleFood),
+        ("tortilla", .stapleFood), ("couscous", .stapleFood),
 
         // Lauk-pauk
         ("ayam", .protein), ("daging", .protein), ("sapi", .protein),
         ("kambing", .protein), ("ikan", .protein), ("telur", .protein),
         ("tahu", .protein), ("tempe", .protein), ("udang", .protein),
         ("cumi", .protein), ("bakso", .protein), ("sosis", .protein),
-        ("teri", .protein), ("lele", .protein), ("tongkol", .protein),
+        ("teri", .protein), ("lele", .protein),
         ("bandeng", .protein), ("rendang", .protein), ("empal", .protein),
-        ("abon", .protein), ("hati", .protein), ("kacang", .protein)
+        ("abon", .protein), ("hati", .protein), ("kacang", .protein),
+        ("salmon", .protein), ("tuna", .protein), ("kakap", .protein),
+        ("gurame", .protein), ("nila", .protein), ("patin", .protein),
+        ("dori", .protein), ("makarel", .protein), ("sarden", .protein),
+        ("tenggiri", .protein), ("cakalang", .protein), ("kerapu", .protein),
+        ("mujair", .protein), ("belut", .protein), ("kepiting", .protein),
+        ("kerang", .protein), ("scallop", .protein), ("bebek", .protein),
+        ("sate", .protein), ("pepes", .protein), ("pindang", .protein),
+        ("nugget", .protein), ("kornet", .protein), ("dendeng", .protein),
+        ("edamame", .protein), ("kedelai", .protein), ("oncom", .protein)
     ]
 
     static func knownCategory(for name: String) -> FoodCategory? {
@@ -165,14 +193,21 @@ private extension MealComponentClassifier {
     static var instructions: String {
         """
         You sort Indonesian foods into the four "Isi Piringku" groups:
-        - staple food / carbohydrate (makanan pokok)
-        - protein side dish (lauk-pauk)
+        - staple food / carbohydrate (makanan pokok): rice, noodles, bread, \
+          potato, corn, cassava, oats, and other grains
+        - protein side dish (lauk-pauk): ALL meat, poultry, ALL fish and \
+          seafood, eggs, tofu, tempeh, and beans
         - vegetables (sayuran)
         - fruit (buah-buahan)
 
+        Classify by the main ingredient only. Ignore the cooking method and any \
+        garnish: "salmon panggang" is grilled salmon, so it is a fish, so it is \
+        a protein side dish. "Irisan apel" is sliced apple, so it is fruit. Any \
+        fish — salmon, tuna, kakap, dori — is always a protein side dish, never \
+        a staple food.
+
         Give exactly one entry per food you are given, and copy each food name \
-        back exactly as it was written. Choose the single group that best \
-        describes the food's main ingredient.
+        back exactly as it was written.
         """
     }
 }

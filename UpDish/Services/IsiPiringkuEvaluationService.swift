@@ -45,7 +45,12 @@ struct IsiPiringkuEvaluationService {
     /// Without it, a well-composed plate like 34/16/34/16 would be wrongly
     /// flagged: protein/fruit target 16.67% is impossible to hit with integer
     /// percentages that still sum to 100.
-    private static let sufficiencyRatio = 0.85
+    ///
+    /// Three quarters of the target, which puts the bar at 25% of the plate for
+    /// makanan pokok and sayuran, and 12.5% for lauk-pauk and buah-buahan. A
+    /// quarter-plate of vegetables is a genuinely good serving, so telling the
+    /// user it's "kurang" reads as nitpicking and makes the app feel wrong.
+    private static let sufficiencyRatio = 0.75
 
     private func status(portion: Int, target: Double) -> CategoryStatus {
         if portion == 0 { return .missing }
