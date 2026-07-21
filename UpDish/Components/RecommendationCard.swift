@@ -57,10 +57,10 @@ struct RecommendationCard: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Self.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Self.cardBorder, lineWidth: 1.5)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Self.cardBorder, lineWidth: 2)
         )
     }
 
