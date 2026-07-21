@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct UpDishApp: App {
@@ -17,5 +18,6 @@ struct UpDishApp: App {
             HomeView()
                 .preferredColorScheme(.light)
         }
+        .modelContainer(for: MealHistoryRecord.self)
     }
 }

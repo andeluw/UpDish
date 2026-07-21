@@ -15,37 +15,72 @@ struct RecommendationCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "lightbulb.fill")
-                .foregroundStyle(status.accentColor)
+            Image(systemName: "wand.and.sparkles.inverse")
+                .foregroundStyle(.primary)
                 .font(.system(size: 20))
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 10) {
                 Text(recommendation.title)
                     .font(.headline)
-                    .foregroundStyle(status.accentColor)
+                    .foregroundStyle(.primary)
+                    .accessibilityLabel(recommendation.title)
 
                 Text(recommendation.message)
                     .font(.subheadline)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(recommendation.message)
 
-                ForEach(Array(recommendation.groups.enumerated()), id: \.element.id) { index, group in
-                    if index > 0 {
-                        DashedDivider()
-                            .foregroundStyle(status.accentColor.opacity(0.6))
-                    }
+                ForEach(recommendation.groups) { group in
                     VStack(alignment: .leading, spacing: 4) {
+                        Text(header(for: group))
+                            .font(.subheadline)
+                            .accessibilityLabel(header(for: group))
                         ForEach(group.options) { option in
                             Text("• \(label(for: option))")
                                 .font(.subheadline)
+                                // Drops the bullet and the em dash, which are
+                                // announced literally ("bullet", "dash").
+                                .accessibilityLabel(spokenLabel(for: option))
                         }
                     }
+                }
+
+                if let closingNote {
+                    Text(closingNote)
+                        .font(.subheadline)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel(closingNote)
                 }
             }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(status.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .background(Self.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Self.cardBorder, lineWidth: 1.5)
+        )
+    }
+
+    private static let cardBackground = Color.white                                   // #FFFFFF
+    private static let cardBorder = Color(red: 232 / 255, green: 224 / 255, blue: 211 / 255) // #E8E0D3
+
+    /// "Pilih salah satu rekomendasi:" for a single group, or a per-group
+    /// variant ("Pilih salah satu sayur rekomendasi:") when several groups need
+    /// completing, so the lists don't run together.
+    private func header(for group: RecommendationGroup) -> String {
+        recommendation.groups.count > 1
+            ? "Pilih salah satu \(group.category.displayName.lowercased()) rekomendasi:"
+            : "Pilih salah satu rekomendasi:"
+    }
+
+    /// Shown only for a single group, where "lain" is unambiguous.
+    private var closingNote: String? {
+        guard recommendation.groups.count == 1,
+              let group = recommendation.groups.first else { return nil }
+        return "Boleh diganti dengan \(group.category.displayName.lowercased()) lain dengan porsi serupa."
     }
 
     private func label(for option: RecommendationOption) -> String {
@@ -53,23 +88,13 @@ struct RecommendationCard: View {
             ? option.name
             : "\(option.name) — \(option.portionDescription)"
     }
-}
 
-/// A thin dashed horizontal line.
-private struct DashedDivider: View {
-    var body: some View {
-        Line()
-            .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-            .frame(height: 1)
-    }
-
-    private struct Line: Shape {
-        func path(in rect: CGRect) -> Path {
-            var path = Path()
-            path.move(to: CGPoint(x: 0, y: rect.midY))
-            path.addLine(to: CGPoint(x: rect.width, y: rect.midY))
-            return path
-        }
+    /// Same content as `label(for:)` but punctuated for speech: a comma reads
+    /// as a natural pause, where "•" and "—" are spoken as symbol names.
+    private func spokenLabel(for option: RecommendationOption) -> String {
+        option.portionDescription.isEmpty
+            ? option.name
+            : "\(option.name), \(option.portionDescription)"
     }
 }
 

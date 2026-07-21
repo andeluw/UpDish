@@ -9,6 +9,27 @@
 import Foundation
 
 extension FoodCategory {
+    /// Label used in the composition checklist beside the plate. Longer than
+    /// `displayName`, which stays short so it reads well inside sentences.
+    var checklistName: String {
+        switch self {
+        case .stapleFood: "Makanan Pokok"
+        case .protein: "Lauk Pauk"
+        case .vegetable: "Sayuran"
+        case .fruit: "Buah-buahan"
+        }
+    }
+
+    /// Short slug used inside plate asset filenames (see IsiPiringkuPlateView).
+    var assetSlug: String {
+        switch self {
+        case .stapleFood: "karbo"
+        case .protein: "lauk"
+        case .vegetable: "sayur"
+        case .fruit: "buah"
+        }
+    }
+
     var emoji: String {
         switch self {
         case .stapleFood: "🍚"

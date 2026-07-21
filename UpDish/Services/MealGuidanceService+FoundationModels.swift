@@ -39,7 +39,7 @@ struct GeneratedSuggestion {
 @available(iOS 26.0, *)
 @Generable
 struct GeneratedGuidance {
-    @Guide(description: "One or two friendly sentences in simple English describing the plate's balance. No numbers.")
+    @Guide(description: "Two short sentences in simple English. First sentence: briefly say what is already good, naming the actual foods on the plate. Second sentence: name EVERY group that is too small or missing — for a too-small group say that food is already there but the portion is still small and more can be added, and for a missing group say it is not on the plate yet and can be added. No numbers.")
     let feedbackBody: String
 
     @Guide(description: "One encouraging English sentence about the benefit of completing the missing groups. No numbers.")
@@ -124,6 +124,11 @@ extension MealGuidanceService {
         How to reason:
         - Look at what is already on the plate, then decide which groups are \
         missing or too small.
+        - Distinguish clearly between two cases when you write the feedback: a \
+        group that is PRESENT BUT TOO LITTLE (it is on the plate, but the \
+        portion is small — say it is there and suggest adding more) versus a \
+        group that is COMPLETELY MISSING (not on the plate at all — say it is \
+        not there yet). Never describe these two the same way.
         - Choose common, affordable Indonesian foods that genuinely complete THIS \
         dish so it approaches the Isi Piringku standard.
         - Make each suggestion specific and practical, with a household portion.
@@ -140,37 +145,94 @@ extension MealGuidanceService {
 
         Strict rules:
         - Write everything in English (it will be translated afterwards).
+        - When you talk about a group that is already on the plate, name the \
+        EXACT food the user listed. Never invent, rename, or substitute a \
+        different food for a group that is already present (e.g. do not say \
+        "tempe" when the plate has grilled chicken).
         - NEVER mention calories, grams, or any nutrient amount.
         - Do not suggest anything for a group that is already sufficient.
-        - Keep the tone simple, warm, and encouraging.
+        - NEVER call the plate balanced, complete, healthy, or "a good start" \
+        when any group is too small or missing. Saying a plate is balanced when \
+        it is not contradicts the verdict shown to the user.
+        - Do not praise a group whose portion is too small. Acknowledge it is \
+        there, then say more can be added.
+        - Keep the tone simple, warm, and encouraging — but warm does not mean \
+        vague. Always state plainly which groups still need adding.
         """
     }
 
     // MARK: Prompt (English only — no Indonesian, or the input guardrail rejects it)
 
     private func prompt(for evaluation: MealEvaluation) -> String {
-        let statuses = evaluation.categoryEvaluations
-            .map { "- \($0.category.englishName): \(statusLabel($0.status))" }
+        // The ACTUAL foods on the plate, so the model talks about what the user
+        // really has instead of inventing a different food for a present group.
+        // `category` is optional: detection may not have classified an item yet,
+        // in which case we still name the food but omit the group label.
+        let plateItems = evaluation.components
+            .map { component -> String in
+                guard let category = component.category else { return "- \(component.name)" }
+                return "- \(component.name) (\(category.englishName))"
+            }
             .joined(separator: "\n")
 
-        let needsImprovement = evaluation.categoriesNeedingImprovement
+        let tooLittle = evaluation.categoryEvaluations
+            .filter { $0.status == .insufficient }
             .map(\.category.englishName)
-            .joined(separator: ", ")
+        let missing = evaluation.categoryEvaluations
+            .filter { $0.status == .missing }
+            .map(\.category.englishName)
 
         return """
-        Here is one Indonesian home-cooked plate, described by its Isi Piringku groups.
+        Here is one Indonesian home-cooked plate.
 
-        Status of each group:
-        \(statuses)
+        The verdict has ALREADY been decided and is shown to the user. Your \
+        feedback must match it and must not contradict it:
+        \(Self.verdictBrief(for: evaluation.overallStatus))
 
-        Groups that need completing: \(needsImprovement.isEmpty ? "none" : needsImprovement)
+        Foods actually on the plate right now:
+        \(plateItems.isEmpty ? "(none)" : plateItems)
+
+        Groups PRESENT BUT THE PORTION IS TOO SMALL (the food is already there — \
+        say the user has it but should add more of that same food): \
+        \(tooLittle.isEmpty ? "none" : tooLittle.joined(separator: ", "))
+
+        Groups COMPLETELY MISSING (not on the plate at all — suggest adding a \
+        new food): \(missing.isEmpty ? "none" : missing.joined(separator: ", "))
 
         Task:
-        1. feedbackBody: describe the plate's balance warmly.
-        2. recommendationSummary: encourage completing the missing groups.
+        1. feedbackBody: exactly two short sentences.
+           Sentence 1 — briefly say what is already good, naming the ACTUAL foods \
+           listed above. Never invent or swap in a different food.
+           Sentence 2 — you MUST mention every group listed as TOO SMALL or \
+           MISSING above. For a too-small group, say that food is already on the \
+           plate but the portion is still small and more can be added. For a \
+           missing group, say it is not there yet and can be added. If both \
+           lists are "none", instead say the plate is already complete.
+        2. recommendationSummary: encourage completing the too-small and missing groups.
         3. suggestions: give 2-3 food choices with portions for EACH group that \
-        needs completing. Do not suggest for groups that are already present.
+        is TOO SMALL or MISSING. Do not suggest anything for a group that is \
+        already sufficient.
         """
+    }
+
+    /// Tells the model the verdict the user is already seeing, so its wording
+    /// can't celebrate a plate that the card says needs fixing.
+    private static func verdictBrief(for status: MealBalanceStatus) -> String {
+        switch status {
+        case .balanced:
+            return "BALANCED — every group is sufficient. Celebrate it."
+        case .mostlyBalanced:
+            return """
+            ALMOST BALANCED — one group still needs completing. Be positive, \
+            but still say clearly what to add.
+            """
+        case .needsImprovement:
+            return """
+            NOT BALANCED YET — more than one group still needs completing. Stay \
+            encouraging, but do NOT call this plate balanced or a good start. \
+            Be clear about what is still missing or too small.
+            """
+        }
     }
 
     private func statusLabel(_ status: CategoryStatus) -> String {
@@ -183,7 +245,7 @@ extension MealGuidanceService {
 }
 
 @available(iOS 26.0, *)
-private extension GeneratedCategory {
+extension GeneratedCategory {
     var appCategory: FoodCategory {
         switch self {
         case .makananPokok: .stapleFood
