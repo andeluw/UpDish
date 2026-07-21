@@ -22,7 +22,7 @@ struct IsiPiringkuGuideView: View {
     private let connectorColor = Color.black
     private let cardBorderColor = Color(red: 0.89, green: 0.86, blue: 0.80)
     private let portionBackground = Color(red: 0.91, green: 0.88, blue: 0.82)
-    private let tableHorizontalPadding: CGFloat = 16
+    private let tableHorizontalPadding: CGFloat = 18
     private let tableFirstColumnWidth: CGFloat = 108
 
     // Loads the `Piringku` asset by default while still allowing a custom image or nil for testing.
@@ -327,6 +327,7 @@ struct IsiPiringkuGuideView: View {
                     description: "Pilih berbagai jenis buah segar sebagai sumber vitamin, mineral, dan serat."
                 )
             }
+            .padding(.vertical, 6)
             .background(
                 Color.white.opacity(0.72),
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -347,6 +348,7 @@ struct IsiPiringkuGuideView: View {
             }
         }
         .padding(.horizontal, usesExpandedLayout ? 20 : 28)
+        .padding(.vertical, 4)
     }
 
     // Draws a straight separator without adding a border around each row.
@@ -385,12 +387,12 @@ struct IsiPiringkuGuideView: View {
                         .frame(width: 2)
 
                     cardDescription(description)
-                        .padding(.leading, 12)
+                        .padding(.leading, 14)
                 }
             }
         }
         .padding(.horizontal, tableHorizontalPadding)
-        .padding(.vertical, usesExpandedLayout ? 14 : 8)
+        .padding(.vertical, usesExpandedLayout ? 16 : 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title), \(spokenPortion). \(description)")
