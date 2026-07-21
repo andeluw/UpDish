@@ -30,14 +30,7 @@ class ComponentViewModel: ObservableObject {
     
     /// Fungsi untuk menambah komponen
     func addComponent(portionPercentage: Int = 1) {
-        var newIndex = 1
-        
-        while components.contains(where: { $0.name.lowercased() == "komponen baru \(newIndex)".lowercased() }) {
-            newIndex += 1
-        }
-        
-        let safeName = "Komponen Baru \(newIndex)"
-        let newComponent = MealComponent(name: safeName, portionPercentage: portionPercentage)
+        let newComponent = MealComponent(name: "", portionPercentage: portionPercentage)
         components.append(newComponent)
     }
     
