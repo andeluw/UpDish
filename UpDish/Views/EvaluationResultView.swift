@@ -137,11 +137,10 @@ struct EvaluationResultView: View {
     private static let loadingBorder = Color(red: 204 / 255, green: 204 / 255, blue: 204 / 255)   // #CCCCCC
     private static let loadingBackground = Color(red: 239 / 255, green: 239 / 255, blue: 239 / 255) // #EFEFEF
 
-    @ViewBuilder
     private var mealImage: some View {
         Group {
-            if let asset = viewModel.imageAssetName {
-                Image(asset)
+            if let image = viewModel.mealImage {
+                Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
             } else {
@@ -155,7 +154,7 @@ struct EvaluationResultView: View {
         }
         .frame(height: 200)
         .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
         .accessibilityLabel("Foto \(viewModel.foodName)")
     }
 }
