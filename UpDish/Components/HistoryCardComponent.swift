@@ -9,10 +9,10 @@ import SwiftUI
 
 struct HistoryCardComponent: View {
     let record: MealHistoryRecord
-    var viewModel: HistoryViewModel
+    let viewModel: HistoryViewModel
 
     var body: some View {
-        HStack (alignment: .top, spacing: 12) {
+        HStack (alignment: .center, spacing: 12) {
             if let uiImage = viewModel.loadImage(named: record.imageFileName) {
                 Image(uiImage: uiImage)
                     .resizable()
@@ -26,7 +26,7 @@ struct HistoryCardComponent: View {
                         .font(.title2)
                         .foregroundColor(.gray)
                 }
-                .frame(width: 90, height: 90)
+                .frame(width: 75, height: 75)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
 
@@ -48,6 +48,13 @@ struct HistoryCardComponent: View {
                     .fontWeight(.semibold)
                     .foregroundColor(.black)
             }
+            
+            Spacer(minLength: 8)
+            
+            Image(systemName: "chevron.right")
+                .font(.system(size: 20))
+                .foregroundStyle(.primary)
+                .accessibilityHidden(true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)

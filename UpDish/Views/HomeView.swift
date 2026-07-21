@@ -5,31 +5,46 @@
 //  Created by Andrew Wallace on 14/07/26.
 //
 
-import SwiftUI
-import SwiftData
 import PhotosUI
+import SwiftData
+import SwiftUI
 
 struct HomeView: View {
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.modelContext)
+    private var modelContext
+    
+    @Query(
+        sort: \MealHistoryRecord.analyzedAt,
+        order: .reverse
+    )
+    private var historyRecords: [MealHistoryRecord]
 
-    @Query(sort: \MealHistoryRecord.analyzedAt, order: .reverse)
-    private var records: [MealHistoryRecord]
-
+    @State private var historyViewModel = HistoryViewModel()
     @State private var photoInputViewModel = PhotoInputViewModel()
     @State private var searchText = ""
     @State private var isGuidePresented = false
     @State private var isBottomToolbarReady = false
-    
+
     var body: some View {
         @Bindable var photoInput = photoInputViewModel
-        
+
         NavigationStack {
-            ScrollView {
-                historyContent
+            Group {
+                if historyRecords.isEmpty {
+                    emptyHistoryView
+                        .frame(
+                            maxWidth: .infinity,
+                            maxHeight: .infinity
+                        )
+                } else {
+                    ScrollView {
+                        historyContent
+                    }
+                }
             }
             .background(Color.background.ignoresSafeArea())
             .navigationTitle("Isi Piringku")
-            .navigationBarTitleDisplayMode(.large)
+            .toolbarTitleDisplayMode(.inlineLarge)
             .searchable(
                 text: $searchText,
                 prompt: "Search"
@@ -43,12 +58,12 @@ struct HomeView: View {
                         kind: .search,
                         placement: .bottomBar
                     )
-                    
+
                     ToolbarSpacer(
                         .fixed,
                         placement: .bottomBar
                     )
-                    
+
                     ToolbarItem(placement: .bottomBar) {
                         photoSourceMenu
                     }
@@ -64,13 +79,14 @@ struct HomeView: View {
             }
             .fullScreenCover(
                 isPresented: $photoInput.isCameraPresented,
-                onDismiss:  {
+                onDismiss: {
                     Task {
-                        await photoInputViewModel.presentComponentModificationIfNeeded()
+                        await photoInputViewModel
+                            .presentComponentModificationIfNeeded()
                     }
                 }
             ) {
-                
+
                 CameraPicker { image in
                     photoInputViewModel.handleCapturedImage(image)
                 }
@@ -83,13 +99,15 @@ struct HomeView: View {
                 if let mealDraft = photoInput.mealDraft {
                     ComponentModificationView(draft: mealDraft)
                         .interactiveDismissDisabled()
+                        .presentationBackground(Color.background)
                 }
             }
             .sheet(
                 isPresented: $photoInput.isPhotosPresented,
                 onDismiss: {
                     Task {
-                        await photoInputViewModel.presentComponentModificationIfNeeded()
+                        await photoInputViewModel
+                            .presentComponentModificationIfNeeded()
                     }
                 }
             ) {
@@ -100,10 +118,7 @@ struct HomeView: View {
             .sheet(
                 isPresented: $isGuidePresented
             ) {
-                // TODO: Isi Piringku Guide
-                Text("Panduan Isi Piringku")
-                    .padding()
-                
+                IsiPiringkuGuideView()
             }
             .overlay {
                 if photoInputViewModel.isLoading {
@@ -133,7 +148,7 @@ private extension HomeView {
         }
         .accessibilityLabel("Panduan Isi Piringku")
     }
-    
+
     var photoSourceMenu: some View {
         PhotoSourceMenu(
             isCameraAvailable: photoInputViewModel.isCameraAvailable,
@@ -142,84 +157,119 @@ private extension HomeView {
         )
     }
     
-    var filteredRecords: [MealHistoryRecord] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return records }
-        return records.filter { $0.mealName.localizedCaseInsensitiveContains(query) }
+    var filteredHistoryRecords: [MealHistoryRecord] {
+        let query = searchText.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        
+        guard !query.isEmpty else {
+            return historyRecords
+        }
+        
+        return historyRecords.filter {
+            $0.mealName.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    var todayRecords: [MealHistoryRecord] {
+        filteredHistoryRecords.filter {
+            Calendar.current.isDateInToday($0.analyzedAt)
+        }
+    }
+
+    var previousRecords: [MealHistoryRecord] {
+        filteredHistoryRecords.filter {
+            !Calendar.current.isDateInToday($0.analyzedAt)
+        }
     }
 
     var historyContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Hari Ini")
-                .font(.title2)
-                .fontWeight(.semibold)
+        LazyVStack(alignment: .leading, spacing: 24) {
+            if !todayRecords.isEmpty {
+                historySection(title: "Hari Ini", records: todayRecords)
+            }
 
-            if filteredRecords.isEmpty {
-                ContentUnavailableView(
-                    "Belum Ada Riwayat",
-                    systemImage: "clock.arrow.circlepath",
-                    description: Text(
-                        "Hasil analisis akan muncul di sini."
-                    )
-                )
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-            } else {
-                ForEach(filteredRecords) { record in
-                    NavigationLink {
-                        EvaluationResultView(
-                            viewModel: EvaluationResultViewModel(
-                                evaluation: record.toMealResult().evaluation,
-                                modelContext: modelContext
-                            )
-                        )
-                    } label: {
-                        historyRow(record)
-                    }
-                    .buttonStyle(.plain)
-                }
+            if !previousRecords.isEmpty {
+                historySection(title: "Sebelumnya", records: previousRecords)
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
     }
 
-    func historyRow(_ record: MealHistoryRecord) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(record.mealName)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(DateFormatterHelper.mealTimestamp(from: record.analyzedAt))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 8)
-
-            Text(record.overallStatus.displayName)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(record.overallStatus.accentColor)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(record.overallStatus.cardBackground)
-                .clipShape(Capsule())
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-        .padding(16)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+    var emptyHistoryView: some View {
+        ContentUnavailableView(
+            "Belum Ada Riwayat",
+            systemImage: "clock.arrow.circlepath",
+            description: Text(
+                "Yuk, mulai evaluasi makanan pertamamu dengan mengetuk tombol + di kanan bawah."
+            )
+        )
+        .padding(.horizontal, 20)
     }
-    
+
+    func historySection(
+        title: String,
+        records: [MealHistoryRecord]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.title3)
+                .fontWeight(.semibold)
+
+            VStack(spacing: 0) {
+                ForEach(
+                    Array(records.enumerated()),
+                    id: \.element.id
+                ) { index, record in
+                    NavigationLink {
+                        EvaluationResultView(
+                            viewModel: EvaluationResultViewModel(
+                                record: record,
+                                modelContext: modelContext
+                            )
+                        )
+                    } label: {
+                        HistoryCardComponent(
+                            record: record,
+                            viewModel: historyViewModel
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                    }
+                    .buttonStyle(.plain)
+
+                    if index < records.count - 1 {
+                        Rectangle()
+                            .fill(Color.textBorder)
+                            .frame(height: 1.75)
+                            .padding(.horizontal, 12)
+                    }
+                }
+            }
+            .background {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(.systemBackground))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(
+                        Color.textBorder,
+                        lineWidth: 3
+                    )
+            }
+            .clipShape(
+                RoundedRectangle(cornerRadius: 10)
+            )
+        }
+    }
+
     var loadingOverlay: some View {
         ZStack {
             Color.black
                 .opacity(0.15)
                 .ignoresSafeArea()
-            
+
             ProgressView("Memproses foto...")
                 .padding(20)
                 .background(
@@ -230,7 +280,7 @@ private extension HomeView {
                 )
         }
     }
-    
+
     var errorIsPresented: Binding<Bool> {
         Binding(
             get: {
@@ -243,4 +293,317 @@ private extension HomeView {
             }
         )
     }
+}
+
+#Preview {
+    let configuration = ModelConfiguration(
+        isStoredInMemoryOnly: true
+    )
+    
+    let container = try! ModelContainer(
+        for: MealHistoryRecord.self,
+        configurations: configuration
+    )
+    
+    let previewDate: (
+        _ daysAgo: Int,
+        _ hour: Int,
+        _ minute: Int
+    ) -> Date = { daysAgo, hour, minute in
+        let day = Calendar.current.date(
+            byAdding: .day,
+            value: -daysAgo,
+            to: .now
+        ) ?? .now
+
+        return Calendar.current.date(
+            bySettingHour: hour,
+            minute: minute,
+            second: 0,
+            of: day
+        ) ?? day
+    }
+
+    let firstTodayRecord = MealHistoryRecord(
+        mealName: "Nasi Ayam + Sayur + Pepaya",
+        overallStatus: .balanced,
+        summary: "Semua komponen terpenuhi",
+        imageFileName: nil,
+        components: [
+            MealComponent(
+                name: "Nasi Putih",
+                category: .stapleFood,
+                portionPercentage: 35
+            ),
+            MealComponent(
+                name: "Ayam Panggang",
+                category: .protein,
+                portionPercentage: 20
+            ),
+            MealComponent(
+                name: "Sayur",
+                category: .vegetable,
+           
+                portionPercentage: 30
+            ),
+            MealComponent(
+                name: "Pepaya",
+                category: .fruit,
+                portionPercentage: 15
+            )
+        ],
+        categoryEvaluations: [
+            CategoryEvaluation(
+                category: .stapleFood,
+                portionPercentage: 35,
+                status: .sufficient,
+                targetPercentage: 33
+            ),
+            CategoryEvaluation(
+                category: .protein,
+                portionPercentage: 20,
+                status: .sufficient,
+                targetPercentage: 17
+            ),
+            CategoryEvaluation(
+                category: .vegetable,
+                portionPercentage: 30,
+                status: .sufficient,
+                targetPercentage: 33
+            ),
+            CategoryEvaluation(
+                category: .fruit,
+                portionPercentage: 15,
+                status: .sufficient,
+                targetPercentage: 17
+            )
+        ]
+    )
+
+    firstTodayRecord.analyzedAt = previewDate(0, 18, 50)
+
+    let secondTodayRecord = MealHistoryRecord(
+        mealName: "Nasi Ayam Panggang + Tomat",
+        overallStatus: .mostlyBalanced,
+        summary: "Buah belum tersedia",
+        imageFileName: nil,
+        components: [
+            MealComponent(
+                name: "Nasi Putih",
+                category: .stapleFood,
+                portionPercentage: 40
+            ),
+            MealComponent(
+                name: "Ayam Panggang",
+                category: .protein,
+                portionPercentage: 30
+            ),
+            MealComponent(
+                name: "Tomat",
+                category: .vegetable,
+                portionPercentage: 30
+            )
+        ],
+        categoryEvaluations: [
+            CategoryEvaluation(
+                category: .stapleFood,
+                portionPercentage: 40,
+                status: .sufficient,
+                targetPercentage: 33
+            ),
+            CategoryEvaluation(
+                category: .protein,
+                portionPercentage: 30,
+                status: .sufficient,
+                targetPercentage: 17
+            ),
+            CategoryEvaluation(
+                category: .vegetable,
+                portionPercentage: 30,
+                status: .sufficient,
+                targetPercentage: 33
+            ),
+            CategoryEvaluation(
+                category: .fruit,
+                portionPercentage: 0,
+                status: .missing,
+                targetPercentage: 17
+            )
+        ]
+    )
+
+    secondTodayRecord.analyzedAt = previewDate(0, 12, 10)
+
+    let thirdTodayRecord = MealHistoryRecord(
+        mealName: "Nasi Sayur + Telur Dadar",
+        overallStatus: .mostlyBalanced,
+        summary: "Buah belum tersedia",
+        imageFileName: nil,
+        components: [
+            MealComponent(
+                name: "Nasi Putih",
+                category: .stapleFood,
+                portionPercentage: 40
+            ),
+            MealComponent(
+                name: "Telur Dadar",
+                category: .protein,
+                portionPercentage: 25
+            ),
+            MealComponent(
+                name: "Sayur",
+                category: .vegetable,
+                portionPercentage: 35
+            )
+        ],
+        categoryEvaluations: [
+            CategoryEvaluation(
+                category: .stapleFood,
+                portionPercentage: 40,
+                status: .sufficient,
+                targetPercentage: 33
+            ),
+            CategoryEvaluation(
+                category: .protein,
+                portionPercentage: 25,
+                status: .sufficient,
+                targetPercentage: 17
+            ),
+            CategoryEvaluation(
+                category: .vegetable,
+                portionPercentage: 35,
+                status: .sufficient,
+                targetPercentage: 33
+            ),
+            CategoryEvaluation(
+                category: .fruit,
+                portionPercentage: 0,
+                status: .missing,
+                targetPercentage: 17
+            )
+        ]
+    )
+
+    thirdTodayRecord.analyzedAt = previewDate(0, 9, 0)
+
+    let firstPreviousRecord = MealHistoryRecord(
+        mealName: "Nasi Ikan Panggang + Tumis Kangkung + Pepaya",
+        overallStatus: .balanced,
+        summary: "Semua komponen terpenuhi",
+        imageFileName: nil,
+        components: [
+            MealComponent(
+                name: "Nasi Putih",
+                category: .stapleFood,
+                portionPercentage: 35
+            ),
+            MealComponent(
+                name: "Ikan Panggang",
+                category: .protein,
+                portionPercentage: 20
+            ),
+            MealComponent(
+                name: "Tumis Kangkung",
+                category: .vegetable,
+                portionPercentage: 30
+            ),
+            MealComponent(
+                name: "Pepaya",
+                category: .fruit,
+                portionPercentage: 15
+            )
+        ],
+        categoryEvaluations: [
+            CategoryEvaluation(
+                category: .stapleFood,
+                portionPercentage: 35,
+                status: .sufficient,
+                targetPercentage: 33
+            ),
+            CategoryEvaluation(
+                category: .protein,
+                portionPercentage: 20,
+                status: .sufficient,
+                targetPercentage: 17
+            ),
+            CategoryEvaluation(
+                category: .vegetable,
+                portionPercentage: 30,
+                status: .sufficient,
+                targetPercentage: 33
+            ),
+            CategoryEvaluation(
+                category: .fruit,
+                portionPercentage: 15,
+                status: .sufficient,
+                targetPercentage: 17
+            )
+        ]
+    )
+
+    firstPreviousRecord.analyzedAt = previewDate(1, 18, 0)
+
+    let secondPreviousRecord = MealHistoryRecord(
+        mealName: "Nasi Ayam Goreng",
+        overallStatus: .needsImprovement,
+        summary: "Sayur dan buah belum tersedia",
+        imageFileName: nil,
+        components: [
+            MealComponent(
+                name: "Nasi Putih",
+                category: .stapleFood,
+                portionPercentage: 60
+            ),
+            MealComponent(
+                name: "Ayam Goreng",
+                category: .protein,
+                portionPercentage: 40
+            )
+        ],
+        categoryEvaluations: [
+            CategoryEvaluation(
+                category: .stapleFood,
+                portionPercentage: 60,
+                status: .sufficient,
+                targetPercentage: 33
+            ),
+            CategoryEvaluation(
+                category: .protein,
+                portionPercentage: 40,
+                status: .sufficient,
+                targetPercentage: 17
+            ),
+            CategoryEvaluation(
+                category: .vegetable,
+                portionPercentage: 0,
+                status: .missing,
+                targetPercentage: 33
+            ),
+            CategoryEvaluation(
+                category: .fruit,
+                portionPercentage: 0,
+                status: .missing,
+                targetPercentage: 17
+            )
+        ]
+    )
+
+    secondPreviousRecord.analyzedAt = previewDate(1, 13, 0)
+    
+    let records = [
+        firstTodayRecord,
+        secondTodayRecord,
+        thirdTodayRecord,
+        firstPreviousRecord,
+        secondPreviousRecord
+    ]
+    
+    for record in records {
+        container.mainContext.insert(record)
+    }
+    
+    try? container.mainContext.save()
+    
+    return HomeView()
+            .modelContainer(container)
 }

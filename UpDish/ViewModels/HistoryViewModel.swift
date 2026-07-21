@@ -11,8 +11,6 @@ import UIKit
 @MainActor
 @Observable
 final class HistoryViewModel {
-    var historyRecords: [MealHistoryRecord] = []
-
     /// Fungsi load gambar berdasarkan nama file
     func loadImage(named fileName: String?) -> UIImage? {
         guard let fileName = fileName, !fileName.isEmpty else { return nil }

@@ -17,6 +17,14 @@ struct EvaluationResultView: View {
     init(viewModel: EvaluationResultViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
+    
+    init(record: MealHistoryRecord) {
+        _viewModel = State(
+            initialValue: EvaluationResultViewModel(
+                record: record
+            )
+        )
+    }
 
     var body: some View {
         ScrollView {
