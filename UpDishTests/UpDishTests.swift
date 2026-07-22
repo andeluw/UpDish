@@ -39,25 +39,25 @@ struct UpDishTests {
         #expect(!vm.components.contains(where: { $0.name == "Telur" }))
     }
 
-    @Test("Add: Menambah komponen baru dengan nama kosong untuk diisi pengguna")
-    func testAddComponent() {
-        let vm = ComponentViewModel()
-        vm.components = [
-            MealComponent(
-                name: "Nasi",
-                portionPercentage: 50
-            ),
-            MealComponent(
-                name: "Ayam Goreng",
-                portionPercentage: 49
-            ),
+    @Test("Add component appends a structurally empty component to trigger UI placeholder")
+    func testAddComponentAppendsEmptyState() {
+        let viewModel = ComponentViewModel()
+        viewModel.components = [
+            MealComponent(name: "Nasi", category: .stapleFood, portionPercentage: 50),
+            MealComponent(name: "Ayam Goreng", category: .protein, portionPercentage: 40)
         ]
-
-        vm.addComponent(portionPercentage: 1)
-
-        #expect(vm.components.count == 3)
-        #expect(vm.components.last?.name == "")
-        #expect(vm.components.last?.portionPercentage == 1)
+        
+        viewModel.addComponent(portionPercentage: 1)
+        
+        #expect(viewModel.components.count == 3, "Komponen harus bertambah menjadi 3")
+        
+        guard let newlyAdded = viewModel.components.last else {
+            Issue.record("Komponen gagal ditambahkan")
+            return
+        }
+        
+        #expect(newlyAdded.name.isEmpty, "Nama komponen baru harus berupa string kosong")
+        #expect(newlyAdded.portionPercentage == 1, "Persentase porsi default harus 1")
     }
 
     @Test("Edge Case: Validasi gagal jika daftar makanan kosong")
