@@ -43,10 +43,11 @@ struct PhotoLibraryPickerView: View {
                         }
                     } label: {
                         Image(systemName: "checkmark")
+                            .foregroundStyle(.white)
                     }
                     .buttonStyle(.glassProminent)
                     .buttonBorderShape(.circle)
-                    .tint(.accent)
+                    .tint(Color.accent)
                     .disabled(viewModel.pickerItems.isEmpty || viewModel.isLoading)
                     .accessibilityLabel("Gunakan foto")
                 }

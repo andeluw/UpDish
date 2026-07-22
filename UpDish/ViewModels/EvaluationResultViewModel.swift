@@ -14,6 +14,7 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 #if canImport(Translation)
 import Translation
 #endif
@@ -26,7 +27,7 @@ final class EvaluationResultViewModel {
     /// Spoken form of `dateText`, which contains a "|" a screen reader would
     /// otherwise announce literally.
     let dateAccessibilityText: String
-    let imageAssetName: String?
+    let mealImage: UIImage?
 
     let evaluation: MealEvaluation
 
@@ -86,7 +87,7 @@ final class EvaluationResultViewModel {
     /// the project defaults types to `@MainActor`, so `= .init()` would warn.
     init(
         evaluation: MealEvaluation,
-        imageAssetName: String? = nil,
+        mealImage: UIImage? = nil,
         modelContext: ModelContext? = nil,
         guidanceService: MealGuidanceService? = nil
     ) {
@@ -97,7 +98,7 @@ final class EvaluationResultViewModel {
         self.dateAccessibilityText = DateFormatterHelper.spokenMealTimestamp(
             from: evaluation.analyzedAt
         )
-        self.imageAssetName = imageAssetName
+        self.mealImage = mealImage
         self.modelContext = modelContext
         self.guidanceService = guidanceService
         self.evaluation = evaluation
@@ -113,7 +114,7 @@ final class EvaluationResultViewModel {
     convenience init(
         foodName: String,
         components: [MealComponent],
-        imageAssetName: String? = nil,
+        mealImage: UIImage? = nil,
         modelContext: ModelContext? = nil,
         evaluationService: IsiPiringkuEvaluationService? = nil,
         guidanceService: MealGuidanceService? = nil
@@ -122,7 +123,7 @@ final class EvaluationResultViewModel {
         let evaluation = evaluationService.evaluate(mealName: foodName, components: components)
         self.init(
             evaluation: evaluation,
-            imageAssetName: imageAssetName,
+            mealImage: mealImage,
             modelContext: modelContext,
             guidanceService: guidanceService
         )
@@ -143,9 +144,13 @@ final class EvaluationResultViewModel {
             summary: record.summary
         )
         
+        let mealImage = record.imageFileName.flatMap {
+            ImageStorageService().load(named: $0)
+        }
+        
         self.init(
             evaluation: evaluation,
-            imageAssetName: nil,
+            mealImage: mealImage,
             modelContext: modelContext,
             guidanceService: guidanceService
         )

@@ -7,18 +7,15 @@
 
 import SwiftData
 import SwiftUI
+import UIKit
 
 struct ComponentModificationView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: ComponentViewModel
 
-    init(draft: MealDraft) {
-        _viewModel = StateObject(
-            wrappedValue: ComponentViewModel(draft: draft)
-        )
-    }
-
+    private let selectedImage: UIImage?
+    private let imageStorageService = ImageStorageService()
     private let recommendationService = RecommendationService()
 
     /// Set once the user confirms — drives navigation to the result screen and
@@ -30,6 +27,17 @@ struct ComponentModificationView: View {
 
     /// Dynamic untuk larger text
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    
+    init(
+        draft: MealDraft,
+        selectedImage: UIImage?
+    ) {
+        self.selectedImage = selectedImage
+        
+        _viewModel = StateObject(
+            wrappedValue: ComponentViewModel(draft: draft)
+        )
+    }
     
     private var buttonLabelLayout: AnyLayout {
         dynamicTypeSize.isAccessibilitySize
@@ -292,6 +300,7 @@ struct ComponentModificationView: View {
                 EvaluationResultView(
                     viewModel: EvaluationResultViewModel(
                         evaluation: evaluation,
+                        mealImage: selectedImage,
                         modelContext: modelContext
                     )
                 )
@@ -320,13 +329,27 @@ struct ComponentModificationView: View {
     /// recommendation saved here is the deterministic one; the result screen
     /// still shows the Foundation Model's version live.
     private func persist(_ evaluation: MealEvaluation) {
+        let imageFileName: String?
+        
+        if let selectedImage {
+            imageFileName = try? imageStorageService.save(
+                selectedImage
+            )
+        } else {
+            imageFileName = nil
+        }
+        
         let result = MealResult(
             evaluation: evaluation,
             recommendation: recommendationService.recommendation(
                 for: evaluation
             )
         )
-        modelContext.insert(MealHistoryRecord(result: result))
+        
+        let record = MealHistoryRecord(result: result)
+        record.imageFileName = imageFileName
+        
+        modelContext.insert(record)
         try? modelContext.save()
     }
 }
@@ -446,7 +469,8 @@ extension View {
                     portionPercentage: 25
                 ),
             ]
-        )
+        ),
+        selectedImage: nil
     )
     .modelContainer(for: MealHistoryRecord.self, inMemory: true)
 }
