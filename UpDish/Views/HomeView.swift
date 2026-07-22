@@ -12,7 +12,7 @@ import SwiftUI
 struct HomeView: View {
     @Environment(\.modelContext)
     private var modelContext
-    
+
     @Query(
         sort: \MealHistoryRecord.analyzedAt,
         order: .reverse
@@ -97,9 +97,12 @@ struct HomeView: View {
                 isPresented: $photoInput.isComponentModificationPresented
             ) {
                 if let mealDraft = photoInput.mealDraft {
-                    ComponentModificationView(draft: mealDraft)
-                        .interactiveDismissDisabled()
-                        .presentationBackground(Color.background)
+                    ComponentModificationView(
+                        draft: mealDraft,
+                        selectedImage: photoInputViewModel.selectedImage
+                    )
+                    .interactiveDismissDisabled()
+                    .presentationBackground(Color.background)
                 }
             }
             .sheet(
@@ -139,8 +142,8 @@ struct HomeView: View {
     }
 }
 
-private extension HomeView {
-    var guideButton: some View {
+extension HomeView {
+    private var guideButton: some View {
         Button {
             isGuidePresented = true
         } label: {
@@ -149,41 +152,41 @@ private extension HomeView {
         .accessibilityLabel("Panduan Isi Piringku")
     }
 
-    var photoSourceMenu: some View {
+    private var photoSourceMenu: some View {
         PhotoSourceMenu(
             isCameraAvailable: photoInputViewModel.isCameraAvailable,
             onCamera: photoInputViewModel.chooseCamera,
             onPhotoLibrary: photoInputViewModel.choosePhotoLibrary
         )
     }
-    
-    var filteredHistoryRecords: [MealHistoryRecord] {
+
+    private var filteredHistoryRecords: [MealHistoryRecord] {
         let query = searchText.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
-        
+
         guard !query.isEmpty else {
             return historyRecords
         }
-        
+
         return historyRecords.filter {
             $0.mealName.localizedCaseInsensitiveContains(query)
         }
     }
 
-    var todayRecords: [MealHistoryRecord] {
+    private var todayRecords: [MealHistoryRecord] {
         filteredHistoryRecords.filter {
             Calendar.current.isDateInToday($0.analyzedAt)
         }
     }
 
-    var previousRecords: [MealHistoryRecord] {
+    private var previousRecords: [MealHistoryRecord] {
         filteredHistoryRecords.filter {
             !Calendar.current.isDateInToday($0.analyzedAt)
         }
     }
 
-    var historyContent: some View {
+    private var historyContent: some View {
         LazyVStack(alignment: .leading, spacing: 24) {
             if !todayRecords.isEmpty {
                 historySection(title: "Hari Ini", records: todayRecords)
@@ -197,7 +200,7 @@ private extension HomeView {
         .padding(.top, 16)
     }
 
-    var emptyHistoryView: some View {
+    private var emptyHistoryView: some View {
         ContentUnavailableView(
             "Belum Ada Riwayat",
             systemImage: "clock.arrow.circlepath",
@@ -208,7 +211,7 @@ private extension HomeView {
         .padding(.horizontal, 20)
     }
 
-    func historySection(
+    private func historySection(
         title: String,
         records: [MealHistoryRecord]
     ) -> some View {
@@ -264,7 +267,7 @@ private extension HomeView {
         }
     }
 
-    var loadingOverlay: some View {
+    private var loadingOverlay: some View {
         ZStack {
             Color.black
                 .opacity(0.15)
@@ -281,7 +284,7 @@ private extension HomeView {
         }
     }
 
-    var errorIsPresented: Binding<Bool> {
+    private var errorIsPresented: Binding<Bool> {
         Binding(
             get: {
                 photoInputViewModel.errorMessage != nil
@@ -299,30 +302,32 @@ private extension HomeView {
     let configuration = ModelConfiguration(
         isStoredInMemoryOnly: true
     )
-    
+
     let container = try! ModelContainer(
         for: MealHistoryRecord.self,
         configurations: configuration
     )
-    
-    let previewDate: (
-        _ daysAgo: Int,
-        _ hour: Int,
-        _ minute: Int
-    ) -> Date = { daysAgo, hour, minute in
-        let day = Calendar.current.date(
-            byAdding: .day,
-            value: -daysAgo,
-            to: .now
-        ) ?? .now
 
-        return Calendar.current.date(
-            bySettingHour: hour,
-            minute: minute,
-            second: 0,
-            of: day
-        ) ?? day
-    }
+    let previewDate:
+        (
+            _ daysAgo: Int,
+            _ hour: Int,
+            _ minute: Int
+        ) -> Date = { daysAgo, hour, minute in
+            let day =
+                Calendar.current.date(
+                    byAdding: .day,
+                    value: -daysAgo,
+                    to: .now
+                ) ?? .now
+
+            return Calendar.current.date(
+                bySettingHour: hour,
+                minute: minute,
+                second: 0,
+                of: day
+            ) ?? day
+        }
 
     let firstTodayRecord = MealHistoryRecord(
         mealName: "Nasi Ayam + Sayur + Pepaya",
@@ -343,14 +348,14 @@ private extension HomeView {
             MealComponent(
                 name: "Sayur",
                 category: .vegetable,
-           
+
                 portionPercentage: 30
             ),
             MealComponent(
                 name: "Pepaya",
                 category: .fruit,
                 portionPercentage: 15
-            )
+            ),
         ],
         categoryEvaluations: [
             CategoryEvaluation(
@@ -376,7 +381,7 @@ private extension HomeView {
                 portionPercentage: 15,
                 status: .sufficient,
                 targetPercentage: 17
-            )
+            ),
         ]
     )
 
@@ -402,7 +407,7 @@ private extension HomeView {
                 name: "Tomat",
                 category: .vegetable,
                 portionPercentage: 30
-            )
+            ),
         ],
         categoryEvaluations: [
             CategoryEvaluation(
@@ -428,7 +433,7 @@ private extension HomeView {
                 portionPercentage: 0,
                 status: .missing,
                 targetPercentage: 17
-            )
+            ),
         ]
     )
 
@@ -454,7 +459,7 @@ private extension HomeView {
                 name: "Sayur",
                 category: .vegetable,
                 portionPercentage: 35
-            )
+            ),
         ],
         categoryEvaluations: [
             CategoryEvaluation(
@@ -480,7 +485,7 @@ private extension HomeView {
                 portionPercentage: 0,
                 status: .missing,
                 targetPercentage: 17
-            )
+            ),
         ]
     )
 
@@ -511,7 +516,7 @@ private extension HomeView {
                 name: "Pepaya",
                 category: .fruit,
                 portionPercentage: 15
-            )
+            ),
         ],
         categoryEvaluations: [
             CategoryEvaluation(
@@ -537,7 +542,7 @@ private extension HomeView {
                 portionPercentage: 15,
                 status: .sufficient,
                 targetPercentage: 17
-            )
+            ),
         ]
     )
 
@@ -558,7 +563,7 @@ private extension HomeView {
                 name: "Ayam Goreng",
                 category: .protein,
                 portionPercentage: 40
-            )
+            ),
         ],
         categoryEvaluations: [
             CategoryEvaluation(
@@ -584,26 +589,26 @@ private extension HomeView {
                 portionPercentage: 0,
                 status: .missing,
                 targetPercentage: 17
-            )
+            ),
         ]
     )
 
     secondPreviousRecord.analyzedAt = previewDate(1, 13, 0)
-    
+
     let records = [
         firstTodayRecord,
         secondTodayRecord,
         thirdTodayRecord,
         firstPreviousRecord,
-        secondPreviousRecord
+        secondPreviousRecord,
     ]
-    
+
     for record in records {
         container.mainContext.insert(record)
     }
-    
+
     try? container.mainContext.save()
-    
+
     return HomeView()
-            .modelContainer(container)
+        .modelContainer(container)
 }
