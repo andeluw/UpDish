@@ -11,13 +11,23 @@ import SwiftData
 
 @main
 struct UpDishApp: App {
+
     @UIApplicationDelegateAdaptor(AppDelegate.self)
     private var appDelegate
-    
+
+    @AppStorage("hasSeenOnboarding")
+    private var hasSeenOnboarding = false
+
     var body: some Scene {
         WindowGroup {
-            HomeView()
-                .preferredColorScheme(.light)
+            Group {
+                if hasSeenOnboarding {
+                    HomeView()
+                } else {
+                    OnboardingView()
+                }
+            }
+            .preferredColorScheme(.light)
         }
         .modelContainer(for: MealHistoryRecord.self)
     }
