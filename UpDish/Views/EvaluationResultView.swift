@@ -42,8 +42,14 @@ struct EvaluationResultView: View {
                 }
 
                 HStack(alignment: .center, spacing: 20) {
-                    IsiPiringkuPlateView(evaluations: viewModel.evaluation.categoryEvaluations)
-                    CategoryChecklistView(evaluations: viewModel.evaluation.categoryEvaluations)
+                    IsiPiringkuPlateView(
+                        evaluations: viewModel.evaluation.categoryEvaluations,
+                        isLoading: viewModel.isGeneratingGuidance
+                    )
+                    CategoryChecklistView(
+                        evaluations: viewModel.evaluation.categoryEvaluations,
+                        isLoading: viewModel.isGeneratingGuidance
+                    )
                     Spacer(minLength: 0)
                 }
 
@@ -92,12 +98,11 @@ struct EvaluationResultView: View {
     /// Closing note that sets expectations about the AI output and points the
     /// user back to the component screen if a detection was wrong.
     private var disclaimer: some View {
-        let text = "Hasil analisis AI merupakan estimasi dan mungkin tidak selalu akurat. "
-            + "Jika terdapat komponen yang kurang tepat, Anda dapat mengubahnya "
-            + "pada halaman komponen makanan."
+        let text = "Hasil analisis ini dihasilkan oleh AI dan mungkin tidak selalu akurat. "
+            + "Mohon periksa kembali hasil evaluasi."
 
         return Text(text)
-            .font(.caption)
+            .font(.system(size: 12))
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityLabel(text)

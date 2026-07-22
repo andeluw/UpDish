@@ -12,9 +12,9 @@ extension MealBalanceStatus {
     /// Icon shown on the feedback card for this verdict.
     var iconName: String {
         switch self {
-        case .balanced: "checkmark"
-        case .mostlyBalanced: "lightbulb"
-        case .needsImprovement: "exclamationmark.3"
+        case .balanced: "hand.thumbsup"
+        case .mostlyBalanced: "exclamationmark.triangle"
+        case .needsImprovement: "light.beacon.max"
         }
     }
 

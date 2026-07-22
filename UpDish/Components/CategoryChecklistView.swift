@@ -10,14 +10,22 @@ import SwiftUI
 
 struct CategoryChecklistView: View {
     let evaluations: [CategoryEvaluation]
+    /// While the AI runs, each group shows a spinner in place of its verdict.
+    var isLoading: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             ForEach(evaluations) { evaluation in
                 HStack(spacing: 10) {
-                    Image(systemName: icon(for: evaluation.status).iconName)
-                        .foregroundStyle(icon(for: evaluation.status).iconColor)
-                        .font(.system(size: 20))
+                    if isLoading {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(width: 20, height: 20)
+                    } else {
+                        Image(systemName: icon(for: evaluation.status).iconName)
+                            .foregroundStyle(icon(for: evaluation.status).iconColor)
+                            .font(.system(size: 20))
+                    }
                     Text(evaluation.category.checklistName)
                         .font(.subheadline)
                         .foregroundStyle(.primary)
@@ -26,7 +34,9 @@ struct CategoryChecklistView: View {
                 // announcing the tick/cross symbol and the name separately.
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(
-                    "\(evaluation.category.checklistName) \(spokenStatus(for: evaluation.status))"
+                    isLoading
+                        ? "\(evaluation.category.checklistName), sedang dianalisis"
+                        : "\(evaluation.category.checklistName) \(spokenStatus(for: evaluation.status))"
                 )
             }
         }
