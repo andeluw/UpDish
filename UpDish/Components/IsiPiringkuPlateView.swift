@@ -35,6 +35,9 @@ struct PlateWedge: Shape {
 struct IsiPiringkuPlateView: View {
     let evaluations: [CategoryEvaluation]
     var diameter: CGFloat = 150
+    /// While the AI runs, the per-group verdict isn't final yet, so we show a
+    /// neutral placeholder plate instead of colouring wedges we may recolour.
+    var isLoading: Bool = false
 
     /// Deterministic asset name that encodes each group's status, in the fixed
     /// order karbo → lauk → sayur → buah. Example:
@@ -73,7 +76,12 @@ struct IsiPiringkuPlateView: View {
 
     var body: some View {
         Group {
-            if let image = UIImage(named: Self.assetName(for: evaluations)) {
+            if isLoading {
+                // Neutral placeholder shown while the evaluation is pending.
+                Image("piring-loading")
+                    .resizable()
+                    .scaledToFit()
+            } else if let image = UIImage(named: Self.assetName(for: evaluations)) {
                 // Illustrated plate for this exact combination of statuses.
                 Image(uiImage: image)
                     .resizable()
