@@ -78,7 +78,7 @@ struct IsiPiringkuPlateView: View {
         Group {
             if isLoading {
                 // Neutral placeholder shown while the evaluation is pending.
-                Image("piring-loading")
+                Image("Piringku")
                     .resizable()
                     .scaledToFit()
             } else if let image = UIImage(named: Self.assetName(for: evaluations)) {
