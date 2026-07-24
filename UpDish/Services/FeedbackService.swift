@@ -19,15 +19,35 @@ struct FeedbackService {
 
     func templateFeedback(for evaluation: MealEvaluation) -> FeedbackText {
         let headline = evaluation.overallStatus.displayName
+        let opening = plateSummary(for: evaluation)
 
         if evaluation.overallStatus == .balanced {
-            return FeedbackText(
-                headline: headline,
-                body: "Komposisi makananmu sudah seimbang. Pertahankan, ya!"
-            )
+            let praise = opening.isEmpty
+                ? "Komposisi makananmu sudah seimbang. Pertahankan, ya!"
+                : "Komposisinya sudah seimbang. Pertahankan, ya!"
+            return FeedbackText(headline: headline, body: opening + praise)
         }
 
-        return FeedbackText(headline: headline, body: composeBody(for: evaluation))
+        return FeedbackText(
+            headline: headline,
+            body: opening + composeBody(for: evaluation)
+        )
+    }
+
+    /// Names the foods the user actually submitted, so every verdict — balanced
+    /// included — describes THEIR plate rather than talking about groups in the
+    /// abstract. The model is instructed to do the same, so the two paths read
+    /// alike instead of feeling like two different apps.
+    ///
+    /// Empty when nothing was listed, which lets the caller fall back to
+    /// wording that reads correctly without it.
+    private func plateSummary(for evaluation: MealEvaluation) -> String {
+        let foods = evaluation.components
+            .map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard !foods.isEmpty else { return "" }
+        return "Piringmu berisi \(list(foods)). "
     }
 
     // MARK: - "Ada tapi kurang" vs "belum ada"

@@ -4,6 +4,10 @@ struct OnboardingView: View {
     @AppStorage("hasSeenOnboarding")
     private var hasSeenOnboarding = false
 
+    /// Held back until the alert is dismissed, so the explanation isn't torn
+    /// off screen by the transition into Home the moment it appears.
+    @State private var isAppleIntelligenceAlertPresented = false
+
     var body: some View {
 
         VStack {
@@ -38,7 +42,13 @@ struct OnboardingView: View {
             Spacer()
 
             Button {
-                hasSeenOnboarding = true
+                // Only interrupt when there's a switch the user can actually
+                // flip; otherwise go straight through to Home.
+                if AppleIntelligenceStatus.current.deservesPrompt {
+                    isAppleIntelligenceAlertPresented = true
+                } else {
+                    hasSeenOnboarding = true
+                }
             } label: {
 
                 Text("Mulai")
@@ -63,6 +73,13 @@ struct OnboardingView: View {
         .background(
             Color(red: 254/255, green: 252/255, blue: 249/255)
         )
+        // Either button continues into Home — enabling Apple Intelligence is
+        // encouraged, never required.
+        .appleIntelligenceAlert(
+            isPresented: $isAppleIntelligenceAlertPresented
+        ) {
+            hasSeenOnboarding = true
+        }
     }
 }
 
