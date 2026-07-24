@@ -113,6 +113,9 @@ struct IsiPiringkuGuideView: View {
             let width = proxy.size.width
             let centerX = width / 2
             let plateSize = min(width * 0.58, 228)
+            let leftLabelX = centerX - plateSize * 0.55
+            let rightTopLabelX = centerX + plateSize * 0.73
+            let rightBottomLabelX = centerX + plateSize * 0.67
 
             ZStack {
                 plateArtwork
@@ -144,16 +147,16 @@ struct IsiPiringkuGuideView: View {
                 )
 
                 diagramLabel("Lauk-pauk", alignment: .leading)
-                    .position(x: 70, y: 60)
+                    .position(x: leftLabelX, y: 60)
 
                 diagramLabel("Buah-\nbuahan", alignment: .leading)
-                    .position(x: width - 30, y: 60)
+                    .position(x: rightTopLabelX, y: 60)
 
                 diagramLabel("Makanan Pokok", alignment: .leading)
-                    .position(x: 74, y: 245)
+                    .position(x: leftLabelX, y: 245)
 
                 diagramLabel("Sayuran", alignment: .leading)
-                    .position(x: width - 45, y: 240)
+                    .position(x: rightBottomLabelX, y: 240)
             }
         }
         .frame(height: 280)
