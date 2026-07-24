@@ -45,20 +45,36 @@ struct HomeView: View {
     @State private var pendingResult: EvaluationResultRoute?
     @State private var activeResult: EvaluationResultRoute?
 
+    @State private var appleIntelligence = AppleIntelligenceMonitor()
+    @State private var isAppleIntelligenceAlertPresented = false
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
         @Bindable var photoInput = photoInputViewModel
 
         NavigationStack {
-            Group {
-                if historyRecords.isEmpty {
-                    emptyHistoryView
-                        .frame(
-                            maxWidth: .infinity,
-                            maxHeight: .infinity
-                        )
-                } else {
-                    ScrollView {
-                        historyContent
+            VStack(spacing: 0) {
+                if appleIntelligence.status.deservesHomeNotice {
+                    AppleIntelligenceBanner(
+                        status: appleIntelligence.status
+                    ) {
+                        isAppleIntelligenceAlertPresented = true
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                }
+
+                Group {
+                    if historyRecords.isEmpty {
+                        emptyHistoryView
+                            .frame(
+                                maxWidth: .infinity,
+                                maxHeight: .infinity
+                            )
+                    } else {
+                        ScrollView {
+                            historyContent
+                        }
                     }
                 }
             }
@@ -185,6 +201,14 @@ struct HomeView: View {
                         modelContext: modelContext
                     )
                 )
+            }
+            .appleIntelligenceAlert(
+                isPresented: $isAppleIntelligenceAlertPresented
+            )
+            // The user may leave, flip the switch, and come back — re-read the
+            // state on return so the banner clears itself.
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { appleIntelligence.refresh() }
             }
         }
     }
