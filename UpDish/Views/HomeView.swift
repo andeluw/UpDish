@@ -9,6 +9,22 @@ import PhotosUI
 import SwiftData
 import SwiftUI
 
+private struct EvaluationResultRoute: Hashable {
+    let evaluation: MealEvaluation
+    let imageFileName: String?
+
+    static func == (
+        lhs: EvaluationResultRoute,
+        rhs: EvaluationResultRoute
+    ) -> Bool {
+        lhs.evaluation.id == rhs.evaluation.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(evaluation.id)
+    }
+}
+
 struct HomeView: View {
     @Environment(\.modelContext)
     private var modelContext
@@ -19,11 +35,15 @@ struct HomeView: View {
     )
     private var historyRecords: [MealHistoryRecord]
 
+    private let imageStorageService = ImageStorageService()
+
     @State private var historyViewModel = HistoryViewModel()
     @State private var photoInputViewModel = PhotoInputViewModel()
     @State private var searchText = ""
     @State private var isGuidePresented = false
     @State private var isBottomToolbarReady = false
+    @State private var pendingResult: EvaluationResultRoute?
+    @State private var activeResult: EvaluationResultRoute?
 
     var body: some View {
         @Bindable var photoInput = photoInputViewModel
@@ -47,7 +67,7 @@ struct HomeView: View {
             .toolbarTitleDisplayMode(.inlineLarge)
             .searchable(
                 text: $searchText,
-                prompt: "Search"
+                prompt: "Cari"
             )
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -94,13 +114,28 @@ struct HomeView: View {
                 .background(.black)
             }
             .sheet(
-                isPresented: $photoInput.isComponentModificationPresented
+                isPresented: $photoInput.isComponentModificationPresented,
+                onDismiss: {
+                    guard let pendingResult else {
+                        return
+                    }
+
+                    activeResult = pendingResult
+                    self.pendingResult = nil
+                }
             ) {
                 if let mealDraft = photoInput.mealDraft {
-                    ComponentModificationView(
-                        draft: mealDraft,
-                        selectedImage: photoInputViewModel.selectedImage
-                    )
+                    NavigationStack {
+                        ComponentModificationView(
+                            draft: mealDraft,
+                            selectedImage: photoInputViewModel.selectedImage
+                        ) { evaluation, imageFileName in
+                            pendingResult = EvaluationResultRoute(
+                                evaluation: evaluation,
+                                imageFileName: imageFileName
+                            )
+                        }
+                    }
                     .interactiveDismissDisabled()
                     .presentationBackground(Color.background)
                 }
@@ -132,11 +167,24 @@ struct HomeView: View {
                 "Terjadi Kesalahan",
                 isPresented: errorIsPresented
             ) {
-                Button("OK", role: .cancel) {
+                Button("Coba lagi", role: .cancel) {
                     photoInputViewModel.errorMessage = nil
                 }
             } message: {
                 Text(photoInputViewModel.errorMessage ?? "")
+            }
+            .navigationDestination(item: $activeResult) { route in
+                let image = route.imageFileName.flatMap {
+                    imageStorageService.load(named: $0)
+                }
+
+                EvaluationResultView(
+                    viewModel: EvaluationResultViewModel(
+                        evaluation: route.evaluation,
+                        mealImage: image,
+                        modelContext: modelContext
+                    )
+                )
             }
         }
     }

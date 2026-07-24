@@ -15,12 +15,12 @@ struct ComponentModificationView: View {
     @StateObject private var viewModel: ComponentViewModel
 
     private let selectedImage: UIImage?
+    private let onConfirmed: (MealEvaluation, String?) -> Void
+    
     private let imageStorageService = ImageStorageService()
     private let recommendationService = RecommendationService()
 
-    /// Set once the user confirms — drives navigation to the result screen and
-    /// doubles as the "already confirmed" guard against repeated submits.
-    @State private var confirmedEvaluation: MealEvaluation?
+    @State private var hasConfirmed = false
 
     /// True while components are being classified and evaluated.
     @State private var isConfirming = false
@@ -30,9 +30,14 @@ struct ComponentModificationView: View {
     
     init(
         draft: MealDraft,
-        selectedImage: UIImage?
+        selectedImage: UIImage?,
+        onConfirmed: @escaping (
+            MealEvaluation,
+            String?
+        ) -> Void
     ) {
         self.selectedImage = selectedImage
+        self.onConfirmed = onConfirmed
         
         _viewModel = StateObject(
             wrappedValue: ComponentViewModel(draft: draft)
@@ -46,263 +51,252 @@ struct ComponentModificationView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollViewReader { proxy in
-                List {
-                    // MARK: - SECTION 1: NAMA MENU (EDITABLE)
-                    VStack(alignment: .leading) {
-                        Text("Nama Menu")
-                            .font(.headline)
-                            .fontWeight(.bold)
+        ScrollViewReader { proxy in
+            List {
+                // MARK: - SECTION 1: NAMA MENU (EDITABLE)
+                VStack(alignment: .leading) {
+                    Text("Nama Menu")
+                        .font(.headline)
+                        .fontWeight(.bold)
 
-                        HStack {
-                            TextField(
-                                "Masukkan nama menu",
-                                text: $viewModel.mealName,
-                                axis: .vertical
-                            )
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .lineLimit(1...4)
-                            .frame(minHeight: 48)
-                        }
-                        .padding(.horizontal)
+                    HStack {
+                        TextField(
+                            "Masukkan nama menu",
+                            text: $viewModel.mealName,
+                            axis: .vertical
+                        )
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .lineLimit(1...4)
                         .frame(minHeight: 48)
-                        .background(Color.white)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color(.textBorder), lineWidth: 2)
-                        )
                     }
-                    .onTapGesture { hideKeyboard() }
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(
-                        EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
+                    .padding(.horizontal)
+                    .frame(minHeight: 48)
+                    .background(Color.white)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(.textBorder), lineWidth: 2)
                     )
+                }
+                .onTapGesture { hideKeyboard() }
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(
+                    EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
+                )
 
-                    // MARK: - SECTION 2: KOMPONEN TERDETEKSI
-                    VStack(alignment: .leading) {
-                        Text("Komponen Terdeteksi")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top)
-
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "lightbulb.max")
-                                .font(.title3)
-                                .foregroundColor(.black)
-                                .accessibilityHidden(true)
-                                .fixedSize()
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Pastikan komponen sudah sesuai")
-                                    .font(.footnote)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.black)
-                                    .fixedSize(
-                                        horizontal: false,
-                                        vertical: true
-                                    )
-
-                                Text(
-                                    "Komponen yang tepat akan membantu kami memberikan evaluasi gizi yang akurat."
-                                )
-                                .font(.caption2)
-                                .fontWeight(.medium)
-                                .foregroundColor(.black)
-                                .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                        .padding()
-                        .frame(
-                            maxWidth: .infinity,
-                            minHeight: 68,
-                            alignment: .leading
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color(.textBorder), lineWidth: 2)
-                        )
-                        .background(Color.buttonTambah)
-                        .cornerRadius(10)
-                        .padding(.bottom)
-                        .accessibilityElement(children: .combine)
-
-                        HStack(spacing: 4) {
-                            Text("Sisa komposisi yang harus ditambahkan:")
-                                .font(.caption)
-                                .foregroundColor(.black)
-                                .fontWeight(.medium)
-
-                            Text("\(viewModel.remainingPercentage)%")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(
-                                    viewModel.remainingPercentage == 0
-                                        ? .green : .red
-                                )
-                        }
+                // MARK: - SECTION 2: KOMPONEN TERDETEKSI
+                VStack(alignment: .leading) {
+                    Text("Komponen Terdeteksi")
+                        .font(.headline)
+                        .fontWeight(.bold)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.bottom, 5)
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel(
-                            "Sisa komposisi yang harus ditambahkan adalah \(viewModel.remainingPercentage) persen"
-                        )
-                        
-                        HStack{
-                            Text("Setiap komponen harus memiliki persentase minimal 1%.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .fontWeight(.medium)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .onTapGesture { hideKeyboard() }
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(
-                        EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
-                    )
+                        .padding(.top)
 
-                    // MARK: - EDITABLE LIST
-                    ForEach(viewModel.components.indices, id: \.self) { index in
-                        let component = viewModel.components[index]
-                        ComponentRowView(
-                            component: component,
-                            onNameChange: {
-                                viewModel.updateName(for: component.id, to: $0)
-                            },
-                            onProportionChange: {
-                                viewModel.updateProportion(
-                                    for: component.id,
-                                    to: $0
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "lightbulb.max")
+                            .font(.title3)
+                            .foregroundColor(.black)
+                            .accessibilityHidden(true)
+                            .fixedSize()
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Pastikan komponen sudah sesuai")
+                                .font(.footnote)
+                                .fontWeight(.bold)
+                                .foregroundColor(.black)
+                                .fixedSize(
+                                    horizontal: false,
+                                    vertical: true
                                 )
-                            }
-                        )
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(
-                            EdgeInsets(
-                                top: 8,
-                                leading: 16,
-                                bottom: 6,
-                                trailing: 16
+
+                            Text(
+                                "Komponen yang tepat akan membantu kami memberikan evaluasi gizi yang akurat."
                             )
-                        )
-                        .id(component.id)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                withAnimation {
-                                    viewModel.removeComponent(
-                                        at: IndexSet(integer: index)
-                                    )
-                                }
-                            } label: {
-                                Label("Hapus", systemImage: "trash")
-                            }
-                            .buttonBorderShape(.roundedRectangle(radius: 1))
-                            .accessibilityLabel("Hapus")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundColor(.black)
+                            .fixedSize(horizontal: false, vertical: true)
                         }
                     }
+                    .padding()
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight: 68,
+                        alignment: .leading
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(.textBorder), lineWidth: 2)
+                    )
+                    .background(Color.buttonTambah)
+                    .cornerRadius(10)
+                    .padding(.bottom)
+                    .accessibilityElement(children: .combine)
 
-                    // MARK: - Button Tambah
-                    VStack {
-                        Button(action: {
-                            viewModel.addComponent(portionPercentage: 1)
-                        }) {
-                            buttonLabelLayout {
-                                Image(systemName: "plus")
-                                Text("Tambah Komponen")
-                                    .multilineTextAlignment(.center)
-                            }
-                            .font(.body)
-                            .fontWeight(.semibold)
-                            .foregroundColor(viewModel.remainingPercentage <= 0 ? .accent.opacity(0.43) : .accent)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 10 : 0)
-                            .frame(minHeight: 54)
-                            .background(Color(.buttonTambah))
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(viewModel.remainingPercentage <= 0 ? .accent.opacity(0.43) : .accent, style: StrokeStyle(lineWidth: 2, dash: [4]))
-                            )
-                        }
-                        .disabled(viewModel.remainingPercentage <= 0)
+                    HStack(spacing: 4) {
+                        Text("Sisa komposisi yang harus ditambahkan:")
+                            .font(.caption)
+                            .foregroundColor(.black)
+                            .fontWeight(.medium)
 
-                        HStack {
-                            Text(
-                                "Total komposisi wajib 100%. Kurangi persentase salah satu komponen untuk menambahkan komponen baru."
+                        Text("\(viewModel.remainingPercentage)%")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(
+                                viewModel.remainingPercentage == 0
+                                    ? .green : .red
                             )
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 5)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(
+                        "Sisa komposisi yang harus ditambahkan adalah \(viewModel.remainingPercentage) persen"
+                    )
+                    
+                    HStack{
+                        Text("Setiap komponen harus memiliki persentase minimal 1%.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fontWeight(.medium)
-                            .lineSpacing(0)
-                            Spacer()
-                        }
-                        .padding(.vertical, 10)
                     }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onTapGesture { hideKeyboard() }
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(
+                    EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
+                )
+
+                // MARK: - EDITABLE LIST
+                ForEach(viewModel.components.indices, id: \.self) { index in
+                    let component = viewModel.components[index]
+                    ComponentRowView(
+                        component: component,
+                        onNameChange: {
+                            viewModel.updateName(for: component.id, to: $0)
+                        },
+                        onProportionChange: {
+                            viewModel.updateProportion(
+                                for: component.id,
+                                to: $0
+                            )
+                        }
+                    )
+                    .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                    .id("BOTTOM_ANCHOR")
-                }
-                .listStyle(.inset)
-                .background(Color.clear)
-                .scrollDismissesKeyboard(.interactively)
-                .onChange(of: viewModel.components.count) {
-                    oldCount,
-                    newCount in
-                    guard oldCount > 0 else { return }
-                    if newCount > oldCount {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            withAnimation(.easeOut(duration: 0.3)) {
-                                proxy.scrollTo("BOTTOM_ANCHOR", anchor: .bottom)
+                    .listRowInsets(
+                        EdgeInsets(
+                            top: 8,
+                            leading: 16,
+                            bottom: 6,
+                            trailing: 16
+                        )
+                    )
+                    .id(component.id)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            withAnimation {
+                                viewModel.removeComponent(
+                                    at: IndexSet(integer: index)
+                                )
                             }
+                        } label: {
+                            Label("Hapus", systemImage: "trash")
+                        }
+                        .buttonBorderShape(.roundedRectangle(radius: 1))
+                        .accessibilityLabel("Hapus")
+                    }
+                }
+
+                // MARK: - Button Tambah
+                VStack {
+                    Button(action: {
+                        viewModel.addComponent(portionPercentage: 1)
+                    }) {
+                        buttonLabelLayout {
+                            Image(systemName: "plus")
+                            Text("Tambah Komponen")
+                                .multilineTextAlignment(.center)
+                        }
+                        .font(.body)
+                        .fontWeight(.semibold)
+                        .foregroundColor(viewModel.remainingPercentage <= 0 ? .accent.opacity(0.43) : .accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 10 : 0)
+                        .frame(minHeight: 54)
+                        .background(Color(.buttonTambah))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(viewModel.remainingPercentage <= 0 ? .accent.opacity(0.43) : .accent, style: StrokeStyle(lineWidth: 2, dash: [4]))
+                        )
+                    }
+                    .disabled(viewModel.remainingPercentage <= 0)
+
+                    HStack {
+                        Text(
+                            "Total komposisi wajib 100%. Kurangi persentase salah satu komponen untuk menambahkan komponen baru."
+                        )
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fontWeight(.medium)
+                        .lineSpacing(0)
+                        Spacer()
+                    }
+                    .padding(.vertical, 10)
+                }
+                .listRowSeparator(.hidden)
+                .id("BOTTOM_ANCHOR")
+            }
+            .listStyle(.inset)
+            .background(Color.clear)
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: viewModel.components.count) {
+                oldCount,
+                newCount in
+                guard oldCount > 0 else { return }
+                if newCount > oldCount {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            proxy.scrollTo("BOTTOM_ANCHOR", anchor: .bottom)
                         }
                     }
                 }
             }
-            .padding(.horizontal, 10)
-            .navigationTitle("Komponen Makanan")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(role: .cancel) {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await confirm() }
-                    } label: {
-                        if isConfirming {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "checkmark")
-                                .bold()
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    // Disabled while the list is invalid, while confirming, and
-                    // once confirmed — preventing a repeated confirmation.
-                    .disabled(
-                        !viewModel.isDishValid
-                            || confirmedEvaluation != nil
-                            || isConfirming
-                    )
+        }
+        .padding(.horizontal, 10)
+        .navigationTitle("Komponen Makanan")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(role: .cancel) {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
                 }
             }
-            .navigationDestination(item: $confirmedEvaluation) { evaluation in
-                EvaluationResultView(
-                    viewModel: EvaluationResultViewModel(
-                        evaluation: evaluation,
-                        mealImage: selectedImage,
-                        modelContext: modelContext
-                    )
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await confirm() }
+                } label: {
+                    if isConfirming {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "checkmark")
+                            .bold()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                // Disabled while the list is invalid, while confirming, and
+                // once confirmed — preventing a repeated confirmation.
+                .disabled(
+                    !viewModel.isDishValid
+                        || hasConfirmed
+                        || isConfirming
                 )
             }
         }
@@ -313,7 +307,7 @@ struct ComponentModificationView: View {
     /// navigates to the result screen (where the Foundation Model pipeline runs
     /// automatically). Guarded so a double-tap can't confirm twice.
     private func confirm() async {
-        guard confirmedEvaluation == nil, !isConfirming else { return }
+        guard !hasConfirmed, !isConfirming else { return }
 
         isConfirming = true
         defer { isConfirming = false }
@@ -321,14 +315,22 @@ struct ComponentModificationView: View {
         // Classifies the detected components into Isi Piringku groups first,
         // otherwise nothing would count toward the plate.
         let evaluation = await viewModel.makeEvaluation()
-        persist(evaluation)
-        confirmedEvaluation = evaluation
+        let imageFileName = persist(evaluation)
+        
+        hasConfirmed = true
+        
+        onConfirmed(
+            evaluation,
+            imageFileName
+        )
+        
+        dismiss()
     }
 
     /// Stores the analyzed meal so it appears in the Home history. The
     /// recommendation saved here is the deterministic one; the result screen
     /// still shows the Foundation Model's version live.
-    private func persist(_ evaluation: MealEvaluation) {
+    private func persist(_ evaluation: MealEvaluation) -> String? {
         let imageFileName: String?
         
         if let selectedImage {
@@ -351,6 +353,8 @@ struct ComponentModificationView: View {
         
         modelContext.insert(record)
         try? modelContext.save()
+        
+        return imageFileName
     }
 }
 
@@ -452,25 +456,27 @@ extension View {
 }
 
 #Preview {
-    ComponentModificationView(
-        draft: MealDraft(
-            mealName: "Nasi Ayam Sayur mantap gas",
-            components: [
-                MealComponent(
-                    name: "Nasi Putih",
-                    portionPercentage: 50
-                ),
-                MealComponent(
-                    name: "Ayam Goreng",
-                    portionPercentage: 25
-                ),
-                MealComponent(
-                    name: "Tumis Sayur",
-                    portionPercentage: 25
-                ),
-            ]
-        ),
-        selectedImage: nil
-    )
+    NavigationStack {
+        ComponentModificationView(
+            draft: MealDraft(
+                mealName: "Nasi Ayam Sayur mantap gas",
+                components: [
+                    MealComponent(
+                        name: "Nasi Putih",
+                        portionPercentage: 50
+                    ),
+                    MealComponent(
+                        name: "Ayam Goreng",
+                        portionPercentage: 25
+                    ),
+                    MealComponent(
+                        name: "Tumis Sayur",
+                        portionPercentage: 25
+                    ),
+                ]
+            ),
+            selectedImage: nil
+        ) { _, _ in }
+    }
     .modelContainer(for: MealHistoryRecord.self, inMemory: true)
 }
