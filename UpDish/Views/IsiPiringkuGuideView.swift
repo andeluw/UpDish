@@ -37,24 +37,32 @@ struct IsiPiringkuGuideView: View {
 
     // Builds the complete scrollable guide screen.
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                header
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 0) {
+                    header
 
-                plateGuide
-                    .padding(.top, usesExpandedLayout ? 26 : 30)
+                    plateGuide
+                        .padding(.top, usesExpandedLayout ? 26 : 30)
 
-                principleSection
-                    .padding(.top, usesExpandedLayout ? 30 : 22)
-                    .padding(.bottom, 48)
+                    principleSection
+                        .padding(.top, usesExpandedLayout ? 30 : 22)
+                        .padding(.bottom, 48)
+                }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
-        }
-        .scrollIndicators(.hidden)
-        .background(pageBackground.ignoresSafeArea())
-        // Supports the VoiceOver two-finger Z gesture to close this guide.
-        .accessibilityAction(.escape) {
-            dismiss()
+            .scrollIndicators(.hidden)
+            .background(pageBackground.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Tutup", systemImage: "xmark", action: dismiss.callAsFunction)
+                        .labelStyle(.iconOnly)
+                }
+            }
+            // Supports the VoiceOver two-finger Z gesture to close this guide.
+            .accessibilityAction(.escape) {
+                dismiss()
+            }
         }
     }
 
@@ -65,8 +73,6 @@ struct IsiPiringkuGuideView: View {
     private var header: some View {
         if usesExpandedLayout {
             VStack(alignment: .leading, spacing: 16) {
-                closeButton
-
                 Text("Panduan Isi Piringku")
                     .font(.title.bold())
                     .fixedSize(horizontal: false, vertical: true)
@@ -83,28 +89,10 @@ struct IsiPiringkuGuideView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 64)
                     .accessibilityAddTraits(.isHeader)
-
-                HStack {
-                    closeButton
-                    Spacer()
-                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
         }
-    }
-
-    // Creates the button that dismisses the guide screen.
-    private var closeButton: some View {
-        Button(action: dismiss.callAsFunction) {
-            Image(systemName: "xmark")
-                .font(.title2.weight(.medium))
-                .foregroundStyle(.black)
-                .frame(width: 46, height: 46)
-                .background(Color.black.opacity(0.07), in: Circle())
-        }
-        .accessibilityLabel("Tutup panduan")
-        .accessibilityHint("Kembali ke halaman sebelumnya")
     }
 
     // MARK: - Plate guide
@@ -255,7 +243,7 @@ struct IsiPiringkuGuideView: View {
         } icon: {
             Image(systemName: "circle.fill")
                 .font(.caption2)
-                .foregroundStyle(color)
+                .foregroundStyle(.black)
                 .accessibilityHidden(true)
         }
     }
