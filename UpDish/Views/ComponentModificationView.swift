@@ -16,7 +16,7 @@ struct ComponentModificationView: View {
 
     private let selectedImage: UIImage?
     private let onConfirmed: (MealEvaluation, String?) -> Void
-    
+
     private let imageStorageService = ImageStorageService()
     private let recommendationService = RecommendationService()
 
@@ -33,23 +33,24 @@ struct ComponentModificationView: View {
 
     /// Dynamic untuk larger text
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    
+
     init(
         draft: MealDraft,
         selectedImage: UIImage?,
-        onConfirmed: @escaping (
-            MealEvaluation,
-            String?
-        ) -> Void
+        onConfirmed:
+            @escaping (
+                MealEvaluation,
+                String?
+            ) -> Void
     ) {
         self.selectedImage = selectedImage
         self.onConfirmed = onConfirmed
-        
+
         _viewModel = StateObject(
             wrappedValue: ComponentViewModel(draft: draft)
         )
     }
-    
+
     private var buttonLabelLayout: AnyLayout {
         dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(spacing: 4))
@@ -118,7 +119,7 @@ struct ComponentModificationView: View {
                                 )
 
                             Text(
-                                "Komponen yang tepat akan membantu kami memberikan evaluasi gizi yang akurat."
+                                "Komponen yang tepat akan membantu kami memberikan evaluasi gizi yang akurat. Total seluruh komposisi wajib 100%"
                             )
                             .font(.caption2)
                             .fontWeight(.medium)
@@ -142,32 +143,32 @@ struct ComponentModificationView: View {
                     .accessibilityElement(children: .combine)
 
                     HStack(spacing: 4) {
-                        Text("Sisa komposisi yang harus ditambahkan:")
+                        Text("Komposisi saat ini:")
                             .font(.caption)
                             .foregroundColor(.black)
                             .fontWeight(.medium)
 
-                        Text("\(viewModel.remainingPercentage)%")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(
-                                viewModel.remainingPercentage == 0
-                                    ? .green : .red
-                            )
+                        Text(
+                            viewModel.remainingPercentage == 0
+                                ? "100%"
+                                : "kurang \(viewModel.remainingPercentage)%"
+                        )
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(
+                            viewModel.remainingPercentage == 0
+                                ? .green : .red
+                        )
                     }
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.bottom, 5)
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel(
-                        "Sisa komposisi yang harus ditambahkan adalah \(viewModel.remainingPercentage) persen"
+                        viewModel.remainingPercentage == 0
+                            ? "Komposisi saat ini 100%"
+                            : "Komposisi saat ini kurang \(viewModel.remainingPercentage)%"
                     )
-                    
-                    HStack{
-                        Text("Setiap komponen harus memiliki persentase minimal 1%.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .fontWeight(.medium)
-                    }
+
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .onTapGesture { hideKeyboard() }
@@ -176,7 +177,6 @@ struct ComponentModificationView: View {
                 .listRowInsets(
                     EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
                 )
-
                 // MARK: - EDITABLE LIST
                 ForEach(viewModel.components.indices, id: \.self) { index in
                     let component = viewModel.components[index]
@@ -230,22 +230,34 @@ struct ComponentModificationView: View {
                         }
                         .font(.body)
                         .fontWeight(.semibold)
-                        .foregroundColor(viewModel.remainingPercentage <= 0 ? .accent.opacity(0.43) : .accent)
+                        .foregroundColor(
+                            viewModel.remainingPercentage <= 0
+                                ? .accent.opacity(0.43) : .accent
+                        )
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 10 : 0)
+                        .padding(
+                            .vertical,
+                            dynamicTypeSize.isAccessibilitySize ? 10 : 0
+                        )
                         .frame(minHeight: 54)
                         .background(Color(.buttonTambah))
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(viewModel.remainingPercentage <= 0 ? .accent.opacity(0.43) : .accent, style: StrokeStyle(lineWidth: 2, dash: [4]))
+                                .stroke(
+                                    viewModel.remainingPercentage <= 0
+                                        ? .accent.opacity(0.43) : .accent,
+                                    style: StrokeStyle(
+                                        lineWidth: 2,
+                                        dash: [4]
+                                    )
+                                )
                         )
                     }
                     .disabled(viewModel.remainingPercentage <= 0)
-
                     HStack {
                         Text(
-                            "Total komposisi wajib 100%. Kurangi persentase salah satu komponen untuk menambahkan komponen baru."
+                            "Setiap komponen harus memiliki persentase minimal 1%. Kurangi persentase salah satu komponen untuk menambahkan komponen baru."
                         )
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -288,7 +300,8 @@ struct ComponentModificationView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     if !hasPromptedForAppleIntelligence,
-                       AppleIntelligenceStatus.current.deservesPrompt {
+                        AppleIntelligenceStatus.current.deservesPrompt
+                    {
                         hasPromptedForAppleIntelligence = true
                         isAppleIntelligenceAlertPresented = true
                     } else {
@@ -335,14 +348,14 @@ struct ComponentModificationView: View {
         // otherwise nothing would count toward the plate.
         let evaluation = await viewModel.makeEvaluation()
         let imageFileName = persist(evaluation)
-        
+
         hasConfirmed = true
-        
+
         onConfirmed(
             evaluation,
             imageFileName
         )
-        
+
         dismiss()
     }
 
@@ -351,7 +364,7 @@ struct ComponentModificationView: View {
     /// still shows the Foundation Model's version live.
     private func persist(_ evaluation: MealEvaluation) -> String? {
         let imageFileName: String?
-        
+
         if let selectedImage {
             imageFileName = try? imageStorageService.save(
                 selectedImage
@@ -359,20 +372,20 @@ struct ComponentModificationView: View {
         } else {
             imageFileName = nil
         }
-        
+
         let result = MealResult(
             evaluation: evaluation,
             recommendation: recommendationService.recommendation(
                 for: evaluation
             )
         )
-        
+
         let record = MealHistoryRecord(result: result)
         record.imageFileName = imageFileName
-        
+
         modelContext.insert(record)
         try? modelContext.save()
-        
+
         return imageFileName
     }
 }
@@ -405,24 +418,47 @@ struct ComponentRowView: View {
     }
 
     var body: some View {
-        dynamicLayout {
-            nameField
+        VStack {
+            dynamicLayout {
+                nameField
 
-            if !dynamicTypeSize.isAccessibilitySize {
-                Spacer(minLength: 8)
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Spacer(minLength: 8)
+                }
+
+                portionField
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 12 : 0)
+            .frame(minHeight: 54)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(
+                        component.name.trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        ).isEmpty ? .red : .textBorder,
+                        lineWidth: 2
+                    )
+            )
 
-            portionField
+            if component.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                .isEmpty
+            {
+                HStack {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.circle")
+                            .accessibilityElement(children: .ignore)
+                        Text("Nama komponen tidak boleh kosong.")
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+
+                    Spacer()
+                }
+            }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 12 : 0)
-        .frame(minHeight: 54)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color(.textBorder), lineWidth: 2)
-        )
     }
 
     private var nameField: some View {
@@ -430,10 +466,18 @@ struct ComponentRowView: View {
             .font(.subheadline)
             .fontWeight(.medium)
             .frame(minHeight: 40)
-            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, alignment: .leading)
+            .frame(
+                maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil,
+                alignment: .leading
+            )
             .layoutPriority(1)
             .accessibilityLabel("Nama komponen")
-            .accessibilityValue(component.name.isEmpty ? "kosong" : component.name)
+            .accessibilityValue(
+                component.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .isEmpty
+                    ? "Kosong. Wajib diisi agar valid."
+                    : component.name
+            )
     }
 
     private var portionField: some View {
