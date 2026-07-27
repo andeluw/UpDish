@@ -25,12 +25,6 @@ struct ComponentModificationView: View {
     /// True while components are being classified and evaluated.
     @State private var isConfirming = false
 
-    /// Last reminder before the feedback is generated, since this is the point
-    /// where Apple Intelligence actually changes what the user gets. Shown at
-    /// most once per visit so repeated edits don't nag.
-    @State private var isAppleIntelligenceAlertPresented = false
-    @State private var hasPromptedForAppleIntelligence = false
-
     /// Dynamic untuk larger text
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -299,14 +293,7 @@ struct ComponentModificationView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    if !hasPromptedForAppleIntelligence,
-                        AppleIntelligenceStatus.current.deservesPrompt
-                    {
-                        hasPromptedForAppleIntelligence = true
-                        isAppleIntelligenceAlertPresented = true
-                    } else {
-                        Task { await confirm() }
-                    }
+                    Task { await confirm() }
                 } label: {
                     if isConfirming {
                         ProgressView()
@@ -324,13 +311,6 @@ struct ComponentModificationView: View {
                         || isConfirming
                 )
             }
-        }
-        // Whichever button is tapped, the evaluation still runs — without
-        // the model it falls back to the built-in feedback.
-        .appleIntelligenceAlert(
-            isPresented: $isAppleIntelligenceAlertPresented
-        ) {
-            Task { await confirm() }
         }
     }
 

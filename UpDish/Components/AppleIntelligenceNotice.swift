@@ -2,97 +2,57 @@
 //  AppleIntelligenceNotice.swift
 //  UpDish
 //
-//  The two ways we surface Apple Intelligence being unavailable: a passive
-//  banner (Home) and a native alert (after onboarding, and before generating
-//  feedback). Both read their copy from AppleIntelligenceStatus so the three
-//  entry points can never drift apart.
+//  Passive Home banner telling the user Apple Intelligence is off or still
+//  preparing. Its copy comes from AppleIntelligenceStatus. This is the only
+//  place we surface the state now — the onboarding and pre-feedback alerts
+//  were removed, because the banner text already explains where to enable it.
 //
 
 import SwiftUI
 
-/// Passive strip shown above the Home content. Tappable when there's something
-/// to do about it; inert while the model is merely downloading.
+/// Informational strip shown above the Home content. Not interactive: the text
+/// itself names the Settings path, so there is nothing to tap.
 struct AppleIntelligenceBanner: View {
     let status: AppleIntelligenceStatus
-    let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: status.noticeIcon)
-                    .font(.system(size: 16))
-                    .foregroundStyle(Self.accent)
-                    .accessibilityHidden(true)
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: status.noticeIcon)
+                .font(.system(size: 16))
+                .foregroundStyle(Self.foreground)
+                .accessibilityHidden(true)
 
-                Text(status.noticeText)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+            Text(status.noticeText)
+                .font(.system(size: 13))
+                .foregroundStyle(Self.foreground)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
 
-                Spacer(minLength: 0)
-
-                if status.deservesPrompt {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                }
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Self.background)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Self.border, lineWidth: 2)
-            )
+            Spacer(minLength: 0)
         }
-        .buttonStyle(.plain)
-        // Inert while preparing — there is no switch to flip, so offering a
-        // tap target would promise an action that doesn't exist.
-        .disabled(!status.deservesPrompt)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Self.background)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Self.border, lineWidth: 1.5)
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(status.noticeText)
-        .accessibilityHint(status.deservesPrompt ? "Ketuk untuk melihat caranya" : "")
     }
 
-    private static let accent = Color(red: 96 / 255, green: 75 / 255, blue: 1 / 255)      // #604B01
-    private static let background = Color(red: 254 / 255, green: 245 / 255, blue: 219 / 255) // #FEF5DB
-    private static let border = Color(red: 232 / 255, green: 224 / 255, blue: 211 / 255)  // #E8E0D3
-}
-
-extension View {
-    /// The native alert explaining how to switch Apple Intelligence on.
-    ///
-    /// Always dismissible: the app produces a full Isi Piringku evaluation
-    /// without the model, so this is advice, never a gate. `onDismiss` runs
-    /// for both buttons, letting a caller continue whatever it was doing.
-    func appleIntelligenceAlert(
-        isPresented: Binding<Bool>,
-        onDismiss: (() -> Void)? = nil
-    ) -> some View {
-        let status = AppleIntelligenceStatus.notEnabled
-        return alert(status.alertTitle, isPresented: isPresented) {
-            Button("Buka Pengaturan") {
-                AppleIntelligenceStatus.openSettings()
-                onDismiss?()
-            }
-            Button("Nanti Saja", role: .cancel) {
-                onDismiss?()
-            }
-        } message: {
-            Text(status.alertMessage)
-        }
-    }
+    private static let foreground = Color.black                                              // #000000
+    private static let border = Color(red: 232 / 255, green: 224 / 255, blue: 211 / 255)     // #E8E0D3
+    private static let background = Color(red: 245 / 255, green: 242 / 255, blue: 236 / 255)  // #F5F2EC
 }
 
 #Preview("Belum aktif") {
-    AppleIntelligenceBanner(status: .notEnabled) {}
+    AppleIntelligenceBanner(status: .notEnabled)
         .padding()
 }
 
 #Preview("Sedang disiapkan") {
-    AppleIntelligenceBanner(status: .preparing) {}
+    AppleIntelligenceBanner(status: .preparing)
         .padding()
 }
