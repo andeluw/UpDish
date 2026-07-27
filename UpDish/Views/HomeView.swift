@@ -116,10 +116,7 @@ struct HomeView: View {
             .fullScreenCover(
                 isPresented: $photoInput.isCameraPresented,
                 onDismiss: {
-                    Task {
-                        await photoInputViewModel
-                            .presentComponentModificationIfNeeded()
-                    }
+                    photoInputViewModel.presentComponentModificationIfNeeded()
                 }
             ) {
 
@@ -159,10 +156,7 @@ struct HomeView: View {
             .sheet(
                 isPresented: $photoInput.isPhotosPresented,
                 onDismiss: {
-                    Task {
-                        await photoInputViewModel
-                            .presentComponentModificationIfNeeded()
-                    }
+                    photoInputViewModel.presentComponentModificationIfNeeded()
                 }
             ) {
                 PhotoLibraryPickerView(
@@ -345,14 +339,32 @@ extension HomeView {
                 .opacity(0.15)
                 .ignoresSafeArea()
 
-            ProgressView("Memproses foto...")
-                .padding(20)
-                .background(
-                    .regularMaterial,
-                    in: RoundedRectangle(
-                        cornerRadius: 16
-                    )
+            VStack(spacing: 16) {
+                ProgressView("Memproses foto...")
+                
+                if photoInputViewModel.isDetectingMeal {
+                    Button(role: .cancel) {
+                        photoInputViewModel.cancelMealDetection()
+                    } label: {
+                        Text("Batalkan")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                }
+            }
+            .padding()
+            .padding(.vertical, 8)
+            .frame(maxWidth: 320)
+            .background(
+                Color.white,
+                in: RoundedRectangle(
+                    cornerRadius: 24,
+                    style: .continuous
                 )
+            )
         }
     }
 

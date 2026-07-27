@@ -26,9 +26,12 @@ final class PhotoInputViewModel {
 
     // Loading and error states
     var isLoading = false
+    var isDetectingMeal = false
     var errorMessage: String?
 
     private var shouldOpenComponentModification = false
+    
+    private var mealDetectionTask: Task<Void, Never>?
 
     // Meal detection
     private let mealDetectionService: any MealDetectionService
@@ -138,41 +141,73 @@ final class PhotoInputViewModel {
     }
 
     // MARK: - Component Modification
-    func presentComponentModificationIfNeeded() async {
+    func presentComponentModificationIfNeeded() {
         guard shouldOpenComponentModification else { return }
         guard let selectedImage else { return }
 
         shouldOpenComponentModification = false
         mealDraft = nil
-        isLoading = true
         errorMessage = nil
-
-        defer {
-            isLoading = false
-        }
-
-        do {
-            mealDraft = try await mealDetectionService.detect(
-                from: selectedImage
-            )
-
-            isComponentModificationPresented = true
-        } catch {
-            shouldOpenComponentModification = true
-
-            if let detectionError = error as? MealDetectionError {
-                errorMessage = detectionError.errorDescription
-            } else {
-                errorMessage =
-                    error.localizedDescription.isEmpty
-                    ? "Makanan belum dapat dianalisis. Periksa koneksi dan coba lagi."
-                    : error.localizedDescription
+        
+        mealDetectionTask?.cancel()
+        
+        mealDetectionTask = Task { [weak self] in
+            guard let self else { return }
+            
+            self.isLoading = true
+            self.isDetectingMeal = true
+            
+            defer {
+                self.isLoading = false
+                self.isDetectingMeal = false
+                self.mealDetectionTask = nil
+            }
+            
+            do {
+                let draft = try await self.mealDetectionService.detect(
+                    from: selectedImage
+                )
+                
+                try Task.checkCancellation()
+                
+                self.mealDraft = draft
+                self.isComponentModificationPresented = true
+            } catch is CancellationError {
+                // Cancellation is expected user behavior
+            } catch {
+                guard !Task.isCancelled else { return }
+                
+                self.shouldOpenComponentModification = true
+                
+                if let detectionError = error as? MealDetectionError {
+                    self.errorMessage = detectionError.errorDescription
+                } else {
+                    self.errorMessage = error.localizedDescription.isEmpty ? "Makanan belum dapat dianalisis. Periksa koneksi dan coba lagi." : error.localizedDescription
+                }
             }
         }
+    }
+    
+    // MARK: - Cancel
+    func cancelMealDetection() {
+        guard isDetectingMeal else { return }
+        
+        mealDetectionTask?.cancel()
+        
+        shouldOpenComponentModification = false
+        mealDraft = nil
+        selectedImage = nil
+        errorMessage = nil
+        
+        isLoading = false
+        isDetectingMeal = false
     }
 
     // MARK: - Reset
     func reset() {
+        mealDetectionTask?.cancel()
+        mealDetectionTask = nil
+        
         selectedImage = nil
         pickerItems = []
         mealDraft = nil
@@ -184,6 +219,7 @@ final class PhotoInputViewModel {
         isComponentModificationPresented = false
 
         isLoading = false
+        isDetectingMeal = false
         errorMessage = nil
     }
 }
