@@ -70,9 +70,24 @@ struct MealGuidanceService {
         guard !weakCategories.isEmpty else { return nil }
 
         var optionsByCategory: [FoodCategory: [RecommendationOption]] = [:]
-        for option in options where weakCategories.contains(option.category) {
-            guard let recommendationOption = Self.makeOption(from: option.text) else { continue }
-            optionsByCategory[option.category, default: []].append(recommendationOption)
+        for option in options {
+            let name = Self.foodName(from: option.text)
+            guard !name.isEmpty else { continue }
+
+            // Trust the food NAME over the model's group label. The on-device
+            // model mislabels foods (it filed "Tempe" as makanan pokok, which
+            // then took the staple portion "1 centong"), so we classify the
+            // name ourselves and fall back to the model's label only when the
+            // name isn't recognised.
+            let category = MealComponentClassifier.knownCategory(for: name) ?? option.category
+            guard weakCategories.contains(category) else { continue }
+
+            optionsByCategory[category, default: []].append(
+                RecommendationOption(
+                    name: name,
+                    portionDescription: PortionGuide.portion(for: name, category: category)
+                )
+            )
         }
 
         guard !optionsByCategory.isEmpty else { return nil }
@@ -89,21 +104,21 @@ struct MealGuidanceService {
         )
     }
 
-    /// Splits a "Food — portion" suggestion into name + portion. Falls back to
-    /// the whole string as the name when there is no separator.
-    private static func makeOption(from text: String) -> RecommendationOption? {
+    /// Keeps only the food NAME from the model's "Food — portion" suggestion.
+    /// The model's own portion is dropped on purpose: it was written in English
+    /// and machine-translated, which is what produced wrong units like "nasi 1
+    /// sendok". The portion is assigned separately from `PortionGuide`.
+    private static func foodName(from text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
+        guard !trimmed.isEmpty else { return "" }
 
         for separator in [" — ", " - ", "—", "-"] {
             if let range = trimmed.range(of: separator) {
-                let name = String(trimmed[..<range.lowerBound]).trimmingCharacters(in: .whitespaces)
-                let portion = String(trimmed[range.upperBound...]).trimmingCharacters(in: .whitespaces)
-                if !name.isEmpty {
-                    return RecommendationOption(name: name, portionDescription: portion)
-                }
+                let candidate = String(trimmed[..<range.lowerBound])
+                    .trimmingCharacters(in: .whitespaces)
+                if !candidate.isEmpty { return candidate }
             }
         }
-        return RecommendationOption(name: trimmed, portionDescription: "")
+        return trimmed
     }
 }

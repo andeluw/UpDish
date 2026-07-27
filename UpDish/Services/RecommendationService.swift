@@ -7,42 +7,32 @@
 //  number-free. Returns nil when the plate is already complete — this is what
 //  makes recommendations appear ONLY for Sedikit / Tidak Ada.
 //
+//  Portions come from `PortionGuide`, the single source of truth shared with
+//  the Foundation Model path, so both routes show the same household units.
+//
 
 import Foundation
 
 struct RecommendationService {
 
-    /// Curated options per category. Populate with at least 5 each.
-    private let optionsByCategory: [FoodCategory: [RecommendationOption]] = [
-        .stapleFood: [
-            RecommendationOption(name: "Nasi Merah", portionDescription: "1 centong"),
-            RecommendationOption(name: "Kentang Rebus", portionDescription: "1 buah sedang"),
-            RecommendationOption(name: "Jagung Rebus", portionDescription: "1 buah"),
-            RecommendationOption(name: "Ubi Rebus", portionDescription: "1 potong sedang"),
-            RecommendationOption(name: "Roti Gandum", portionDescription: "2 lembar")
-        ],
-        .protein: [
-            RecommendationOption(name: "Telur Rebus", portionDescription: "1 butir"),
-            RecommendationOption(name: "Tahu", portionDescription: "2 potong"),
-            RecommendationOption(name: "Tempe", portionDescription: "2 potong"),
-            RecommendationOption(name: "Ikan", portionDescription: "1 potong sedang"),
-            RecommendationOption(name: "Ayam", portionDescription: "1 potong sedang")
-        ],
-        .vegetable: [
-            RecommendationOption(name: "Tumis Bayam", portionDescription: "1 porsi sedang"),
-            RecommendationOption(name: "Capcay / Sayur Bening", portionDescription: "1 porsi sedang"),
-            RecommendationOption(name: "Urap / Lalapan", portionDescription: "1 porsi sedang"),
-            RecommendationOption(name: "Sup Sayur", portionDescription: "1 mangkuk kecil"),
-            RecommendationOption(name: "Brokoli Rebus", portionDescription: "1 porsi sedang")
-        ],
-        .fruit: [
-            RecommendationOption(name: "Pisang", portionDescription: "1 buah sedang"),
-            RecommendationOption(name: "Pepaya", portionDescription: "1 potong sedang"),
-            RecommendationOption(name: "Semangka", portionDescription: "2 potong kecil"),
-            RecommendationOption(name: "Apel", portionDescription: "1/2 buah sedang"),
-            RecommendationOption(name: "Jeruk", portionDescription: "1 buah sedang")
-        ]
+    /// Curated foods per category (>= 5 each). Portions are attached from
+    /// `PortionGuide` at build time so this list only has to name the foods.
+    private static let foodsByCategory: [FoodCategory: [String]] = [
+        .stapleFood: ["Nasi Merah", "Kentang Rebus", "Jagung Rebus", "Ubi Rebus", "Roti Gandum"],
+        .protein: ["Telur Rebus", "Tahu", "Tempe", "Ikan", "Ayam"],
+        .vegetable: ["Tumis Bayam", "Capcay", "Urap / Lalapan", "Sup Sayur", "Brokoli Rebus"],
+        .fruit: ["Pisang", "Pepaya", "Semangka", "Apel", "Jeruk"]
     ]
+
+    private let optionsByCategory: [FoodCategory: [RecommendationOption]] =
+        foodsByCategory.reduce(into: [:]) { result, entry in
+            result[entry.key] = entry.value.map { name in
+                RecommendationOption(
+                    name: name,
+                    portionDescription: PortionGuide.portion(for: name, category: entry.key)
+                )
+            }
+        }
 
     /// Returns nil when nothing needs improving (all groups sufficient).
     func recommendation(for evaluation: MealEvaluation) -> MealRecommendation? {
