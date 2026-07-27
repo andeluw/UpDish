@@ -44,6 +44,7 @@ struct HomeView: View {
     @State private var isBottomToolbarReady = false
     @State private var pendingResult: EvaluationResultRoute?
     @State private var activeResult: EvaluationResultRoute?
+    @State private var isCancelDetectionAlertPresented: Bool = false
 
     @State private var appleIntelligence = AppleIntelligenceMonitor()
     @State private var isAppleIntelligenceAlertPresented = false
@@ -182,6 +183,20 @@ struct HomeView: View {
                 }
             } message: {
                 Text(photoInputViewModel.errorMessage ?? "")
+            }
+            .alert(
+                "Batalkan Analisis?",
+                isPresented: $isCancelDetectionAlertPresented
+            ) {
+                Button("Kembali", role: .cancel) {}
+
+                Button("Batalkan", role: .destructive) {
+                    photoInputViewModel.cancelMealDetection()
+                }
+            } message: {
+                Text(
+                    "Proses analisis foto akan dihentikan. Anda perlu memulai analisis dari awal jika ingin melanjutkan."
+                )
             }
             .navigationDestination(item: $activeResult) { route in
                 let image = route.imageFileName.flatMap {
@@ -339,12 +354,12 @@ extension HomeView {
                 .opacity(0.15)
                 .ignoresSafeArea()
 
-            VStack(spacing: 16) {
+            VStack(spacing: 24) {
                 ProgressView("Memproses foto...")
-                
+
                 if photoInputViewModel.isDetectingMeal {
                     Button(role: .cancel) {
-                        photoInputViewModel.cancelMealDetection()
+                        isCancelDetectionAlertPresented = true
                     } label: {
                         Text("Batalkan")
                             .fontWeight(.semibold)
