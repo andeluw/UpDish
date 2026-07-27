@@ -151,6 +151,8 @@ final class FirebaseAIMealDetectionService: MealDetectionService {
     }
 
     func detect(from image: UIImage) async throws -> MealDraft {
+        try Task.checkCancellation()
+        
         let prompt = """
             Analisis makanan pada foto ini sesuai instruksi yang diberikan.
             """
@@ -159,6 +161,8 @@ final class FirebaseAIMealDetectionService: MealDetectionService {
             image,
             prompt
         )
+        
+        try Task.checkCancellation()
 
         guard
             let jsonText = response.text,

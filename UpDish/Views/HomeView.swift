@@ -44,6 +44,7 @@ struct HomeView: View {
     @State private var isBottomToolbarReady = false
     @State private var pendingResult: EvaluationResultRoute?
     @State private var activeResult: EvaluationResultRoute?
+    @State private var isCancelDetectionAlertPresented: Bool = false
 
     @State private var appleIntelligence = AppleIntelligenceMonitor()
     @State private var isAppleIntelligenceAlertPresented = false
@@ -116,10 +117,7 @@ struct HomeView: View {
             .fullScreenCover(
                 isPresented: $photoInput.isCameraPresented,
                 onDismiss: {
-                    Task {
-                        await photoInputViewModel
-                            .presentComponentModificationIfNeeded()
-                    }
+                    photoInputViewModel.presentComponentModificationIfNeeded()
                 }
             ) {
 
@@ -159,10 +157,7 @@ struct HomeView: View {
             .sheet(
                 isPresented: $photoInput.isPhotosPresented,
                 onDismiss: {
-                    Task {
-                        await photoInputViewModel
-                            .presentComponentModificationIfNeeded()
-                    }
+                    photoInputViewModel.presentComponentModificationIfNeeded()
                 }
             ) {
                 PhotoLibraryPickerView(
@@ -188,6 +183,20 @@ struct HomeView: View {
                 }
             } message: {
                 Text(photoInputViewModel.errorMessage ?? "")
+            }
+            .alert(
+                "Batalkan Analisis?",
+                isPresented: $isCancelDetectionAlertPresented
+            ) {
+                Button("Kembali", role: .cancel) {}
+
+                Button("Batalkan", role: .destructive) {
+                    photoInputViewModel.cancelMealDetection()
+                }
+            } message: {
+                Text(
+                    "Proses analisis foto akan dihentikan. Anda perlu memulai analisis dari awal jika ingin melanjutkan."
+                )
             }
             .navigationDestination(item: $activeResult) { route in
                 let image = route.imageFileName.flatMap {
@@ -345,14 +354,32 @@ extension HomeView {
                 .opacity(0.15)
                 .ignoresSafeArea()
 
-            ProgressView("Memproses foto...")
-                .padding(20)
-                .background(
-                    .regularMaterial,
-                    in: RoundedRectangle(
-                        cornerRadius: 16
-                    )
+            VStack(spacing: 24) {
+                ProgressView("Memproses foto...")
+
+                if photoInputViewModel.isDetectingMeal {
+                    Button(role: .cancel) {
+                        isCancelDetectionAlertPresented = true
+                    } label: {
+                        Text("Batalkan")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                }
+            }
+            .padding()
+            .padding(.vertical, 8)
+            .frame(maxWidth: 320)
+            .background(
+                Color.white,
+                in: RoundedRectangle(
+                    cornerRadius: 24,
+                    style: .continuous
                 )
+            )
         }
     }
 
