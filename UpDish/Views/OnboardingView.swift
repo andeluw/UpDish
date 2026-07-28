@@ -26,12 +26,12 @@ struct OnboardingView: View {
                                            blue: 34/255))
                     .multilineTextAlignment(.center)
 
-                Text("Kami akan mengevaluasi komposisi makananmu dan memberikan saran agar lebih seimbang.")
+                Text("Kami menggunakan Apple Intelligence untuk menganalisis komposisi makanananmu dan pastikan sudah aktif agar mendapat rekomendasi gizi yang lebih baik.")
                     .font(.callout)
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, 35)
 
             }
 
