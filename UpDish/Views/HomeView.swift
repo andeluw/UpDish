@@ -69,6 +69,12 @@ struct HomeView: View {
                                 maxWidth: .infinity,
                                 maxHeight: .infinity
                             )
+                    } else if hasNoSearchResults {
+                        noSearchResultsView
+                            .frame(
+                                maxWidth: .infinity,
+                                maxHeight: .infinity
+                            )
                     } else {
                         ScrollView {
                             historyContent
@@ -94,7 +100,9 @@ struct HomeView: View {
                     }
                 }
             } message: { record in
-                Text("Riwayat evaluasi ini akan dihapus secara permanen dan tidak dapat dipulihkan.")
+                Text(
+                    "Riwayat evaluasi ini akan dihapus secara permanen dan tidak dapat dipulihkan."
+                )
             }
             .searchable(
                 text: $searchText,
@@ -197,7 +205,7 @@ struct HomeView: View {
                 Button("Tutup", role: .cancel) {
                     photoInputViewModel.reset()
                 }
-                
+
                 Button("Coba Lagi") {
                     Task { @MainActor in
                         await Task.yield()
@@ -205,7 +213,9 @@ struct HomeView: View {
                     }
                 }
             } message: {
-                Text("Pastikan perangkat Anda terhubung ke internet, lalu coba lagi.")
+                Text(
+                    "Pastikan perangkat Anda terhubung ke internet, lalu coba lagi."
+                )
             }
             .alert(
                 "Terjadi Kesalahan",
@@ -271,18 +281,22 @@ extension HomeView {
         )
     }
 
-    private var filteredHistoryRecords: [MealHistoryRecord] {
-        let query = searchText.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
+    private var trimmedSearchText: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
-        guard !query.isEmpty else {
+    private var filteredHistoryRecords: [MealHistoryRecord] {
+        guard !trimmedSearchText.isEmpty else {
             return historyRecords
         }
 
         return historyRecords.filter {
-            $0.mealName.localizedCaseInsensitiveContains(query)
+            $0.mealName.localizedCaseInsensitiveContains(trimmedSearchText)
         }
+    }
+
+    private var hasNoSearchResults: Bool {
+        !trimmedSearchText.isEmpty && filteredHistoryRecords.isEmpty
     }
 
     private var todayRecords: [MealHistoryRecord] {
@@ -317,6 +331,17 @@ extension HomeView {
             systemImage: "clock.arrow.circlepath",
             description: Text(
                 "Yuk, mulai evaluasi makanan pertamamu dengan mengetuk tombol + di kanan bawah."
+            )
+        )
+        .padding(.horizontal, 20)
+    }
+
+    private var noSearchResultsView: some View {
+        ContentUnavailableView(
+            "Tidak ada hasil untuk \"\(trimmedSearchText)\"",
+            systemImage: "magnifyingglass",
+            description: Text(
+                "Cek penulisannya atau coba lakukan pencarian baru"
             )
         )
         .padding(.horizontal, 20)
@@ -358,9 +383,9 @@ extension HomeView {
                         showDeleteAlert = true
                     }
                     .accessibilityAction(named: "Hapus") {
-                            recordToDelete = record
-                            showDeleteAlert = true
-                        }
+                        recordToDelete = record
+                        showDeleteAlert = true
+                    }
 
                     if index < records.count - 1 {
                         Rectangle()
