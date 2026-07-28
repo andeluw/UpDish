@@ -191,6 +191,23 @@ struct HomeView: View {
                 }
             }
             .alert(
+                "Tidak Ada Koneksi Internet",
+                isPresented: $photoInput.isNoInternetAlertPresented
+            ) {
+                Button("Tutup", role: .cancel) {
+                    photoInputViewModel.reset()
+                }
+                
+                Button("Coba Lagi") {
+                    Task { @MainActor in
+                        await Task.yield()
+                        photoInputViewModel.presentComponentModificationIfNeeded()
+                    }
+                }
+            } message: {
+                Text("Pastikan perangkat Anda terhubung ke internet, lalu coba lagi.")
+            }
+            .alert(
                 "Terjadi Kesalahan",
                 isPresented: errorIsPresented
             ) {

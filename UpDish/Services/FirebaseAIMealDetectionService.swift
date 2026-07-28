@@ -151,66 +151,100 @@ final class FirebaseAIMealDetectionService: MealDetectionService {
     }
 
     func detect(from image: UIImage) async throws -> MealDraft {
-        try Task.checkCancellation()
-        
-        let prompt = """
-            Analisis makanan pada foto ini sesuai instruksi yang diberikan.
-            """
+        do {
+            try Task.checkCancellation()
 
-        let response = try await model.generateContent(
-            image,
-            prompt
-        )
-        
-        try Task.checkCancellation()
+            let prompt = """
+                Analisis makanan pada foto ini sesuai instruksi yang diberikan.
+                """
 
-        guard
-            let jsonText = response.text,
-            let jsonData = jsonText.data(using: .utf8)
-        else {
-            throw MealDetectionError.emptyResponse
-        }
+            let response = try await model.generateContent(
+                image,
+                prompt
+            )
 
-        let decodedResponse = try JSONDecoder().decode(
-            DetectionResponse.self,
-            from: jsonData
-        )
+            try Task.checkCancellation()
 
-        let components = decodedResponse.components.compactMap {
-            component -> MealComponent? in
+            guard
+                let jsonText = response.text,
+                let jsonData = jsonText.data(using: .utf8)
+            else {
+                throw MealDetectionError.emptyResponse
+            }
 
-            let trimmedName = component.name.trimmingCharacters(
+            let decodedResponse = try JSONDecoder().decode(
+                DetectionResponse.self,
+                from: jsonData
+            )
+
+            let components = decodedResponse.components.compactMap {
+                component -> MealComponent? in
+
+                let trimmedName = component.name.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+                guard !trimmedName.isEmpty else {
+                    return nil
+                }
+
+                return MealComponent(
+                    name: trimmedName,
+                    portionPercentage: min(
+                        100,
+                        max(1, component.portionPercentage)
+                    )
+                )
+            }
+            guard !components.isEmpty else {
+                throw MealDetectionError.noFoodDetected
+            }
+
+            let mealName = decodedResponse.mealName.trimmingCharacters(
                 in: .whitespacesAndNewlines
             )
 
-            guard !trimmedName.isEmpty else {
-                return nil
+            guard !mealName.isEmpty else {
+                throw MealDetectionError.invalidResponse
             }
 
-            return MealComponent(
-                name: trimmedName,
-                portionPercentage: min(
-                    100,
-                    max(1, component.portionPercentage)
-                )
+            return MealDraft(
+                mealName: mealName,
+                components: components
             )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as MealDetectionError {
+            throw error
+        } catch {
+            switch Self.networkErrorCode(from: error) {
+            case .notConnectedToInternet:
+                throw MealDetectionError.noInternetConnection
+            case .networkConnectionLost:
+                throw MealDetectionError.connectionLost
+
+            default:
+                throw error
+            }
         }
-        guard !components.isEmpty else {
-            throw MealDetectionError.noFoodDetected
+    }
+
+    private static func networkErrorCode(
+        from error: Error
+    ) -> URLError.Code? {
+        let nsError = error as NSError
+
+        if nsError.domain == NSURLErrorDomain {
+            return URLError.Code(rawValue: nsError.code)
         }
 
-        let mealName = decodedResponse.mealName.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-
-        guard !mealName.isEmpty else {
-            throw MealDetectionError.invalidResponse
+        if let underlyingError = nsError.userInfo[NSUnderlyingErrorKey]
+            as? Error
+        {
+            return networkErrorCode(from: underlyingError)
         }
 
-        return MealDraft(
-            mealName: mealName,
-            components: components
-        )
+        return nil
     }
 }
 
@@ -227,12 +261,20 @@ extension FirebaseAIMealDetectionService {
 }
 
 enum MealDetectionError: LocalizedError {
+    case noInternetConnection
+    case connectionLost
     case emptyResponse
     case noFoodDetected
     case invalidResponse
 
     var errorDescription: String? {
         switch self {
+        case .noInternetConnection:
+            return
+                "Pastikan perangkat Anda terhubung ke internet, lalu coba lagi."
+        case .connectionLost:
+            return
+                "Koneksi internet terputus saat proses analisis. Silakan coba lagi."
         case .emptyResponse:
             return "Hasil analisis belum tersedia. Silakan coba lagi."
         case .noFoodDetected:
