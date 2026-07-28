@@ -28,8 +28,11 @@ final class PhotoInputViewModel {
     var isLoading = false
     var isDetectingMeal = false
     var errorMessage: String?
+    var isNoInternetAlertPresented = false
 
     private var shouldOpenComponentModification = false
+    
+    private let networkMonitorService = NetworkMonitorService()
     
     private var mealDetectionTask: Task<Void, Never>?
 
@@ -144,7 +147,14 @@ final class PhotoInputViewModel {
     func presentComponentModificationIfNeeded() {
         guard shouldOpenComponentModification else { return }
         guard let selectedImage else { return }
+        
+        if networkMonitorService.isConnected == false {
+            errorMessage = nil
+            isNoInternetAlertPresented = true
+            return
+        }
 
+        isNoInternetAlertPresented = false
         shouldOpenComponentModification = false
         mealDraft = nil
         errorMessage = nil
@@ -180,7 +190,14 @@ final class PhotoInputViewModel {
                 self.shouldOpenComponentModification = true
                 
                 if let detectionError = error as? MealDetectionError {
-                    self.errorMessage = detectionError.errorDescription
+                    switch detectionError {
+                    case .noInternetConnection, .connectionLost:
+                        self.errorMessage = nil
+                        self.isNoInternetAlertPresented = true
+                    default:
+                        self.errorMessage = detectionError.errorDescription
+                    }
+                    return
                 } else {
                     self.errorMessage = error.localizedDescription.isEmpty ? "Makanan belum dapat dianalisis. Periksa koneksi dan coba lagi." : error.localizedDescription
                 }
@@ -221,5 +238,6 @@ final class PhotoInputViewModel {
         isLoading = false
         isDetectingMeal = false
         errorMessage = nil
+        isNoInternetAlertPresented = false
     }
 }
