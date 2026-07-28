@@ -15,6 +15,7 @@ struct MealStatusChip: View {
             .font(.caption2)
             .fontWeight(.semibold)
             .foregroundColor(textColor)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(backgroundColor)
