@@ -45,6 +45,8 @@ struct HomeView: View {
     @State private var pendingResult: EvaluationResultRoute?
     @State private var activeResult: EvaluationResultRoute?
     @State private var isCancelDetectionAlertPresented: Bool = false
+    @State private var showDeleteAlert: Bool = false
+    @State private var recordToDelete: MealHistoryRecord? = nil
 
     @State private var appleIntelligence = AppleIntelligenceMonitor()
     @Environment(\.scenePhase) private var scenePhase
@@ -77,6 +79,23 @@ struct HomeView: View {
             .background(Color.background.ignoresSafeArea())
             .navigationTitle("Isi Piringku")
             .toolbarTitleDisplayMode(.inlineLarge)
+            .alert(
+                "Hapus Riwayat Evaluasi?",
+                isPresented: $showDeleteAlert,
+                presenting: recordToDelete
+            ) { record in
+                Button("Batalkan", role: .cancel) {
+                    recordToDelete = nil
+                }
+                Button("Hapus", role: .destructive) {
+                    withAnimation {
+                        modelContext.delete(record)
+                        recordToDelete = nil
+                    }
+                }
+            } message: { record in
+                Text("Riwayat evaluasi ini akan dihapus secara permanen dan tidak dapat dipulihkan.")
+            }
             .searchable(
                 text: $searchText,
                 prompt: "Cari"
@@ -84,6 +103,7 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     guideButton
+                        .dynamicTypeSize(.large)
                 }
                 if isBottomToolbarReady {
                     DefaultToolbarItem(
@@ -98,6 +118,7 @@ struct HomeView: View {
 
                     ToolbarItem(placement: .bottomBar) {
                         photoSourceMenu
+                            .dynamicTypeSize(.large)
                     }
                     .sharedBackgroundVisibility(.hidden)
                 }
@@ -292,6 +313,7 @@ extension HomeView {
             Text(title)
                 .font(.title3)
                 .fontWeight(.semibold)
+                .accessibilityLabel("Riwayat menu \(title)")
 
             VStack(spacing: 0) {
                 ForEach(
@@ -314,6 +336,14 @@ extension HomeView {
                         .padding(.vertical, 16)
                     }
                     .buttonStyle(.plain)
+                    .customSwipeToDelete {
+                        recordToDelete = record
+                        showDeleteAlert = true
+                    }
+                    .accessibilityAction(named: "Hapus") {
+                            recordToDelete = record
+                            showDeleteAlert = true
+                        }
 
                     if index < records.count - 1 {
                         Rectangle()
@@ -323,20 +353,12 @@ extension HomeView {
                     }
                 }
             }
-            .background {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(.systemBackground))
-            }
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay {
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(
-                        Color.textBorder,
-                        lineWidth: 3
-                    )
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color(.textBorder), lineWidth: 2)
             }
-            .clipShape(
-                RoundedRectangle(cornerRadius: 10)
-            )
         }
     }
 
