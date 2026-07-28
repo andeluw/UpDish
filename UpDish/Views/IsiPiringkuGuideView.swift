@@ -8,7 +8,7 @@
 import SwiftUI
 
 // SwiftUI implementation of the revised "Panduan Isi Piringku" hi-fi.
-// The default plate artwork is loaded from Assets.xcassets using the name `Piringku`.
+// The default guide artwork is loaded from Assets.xcassets using the name `IsiPiringkuGuide`.
 struct IsiPiringkuGuideView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -16,17 +16,14 @@ struct IsiPiringkuGuideView: View {
     private let plateImage: Image?
 
     private let pageBackground = Color(red: 0.995, green: 0.99, blue: 0.975)
-    private let proteinColor = Color(red: 0.95, green: 0.42, blue: 0.44)
-    private let stapleColor = Color(red: 0.95, green: 0.64, blue: 0.12)
     private let vegetableColor = Color(red: 0.43, green: 0.66, blue: 0.29)
-    private let connectorColor = Color.black
     private let cardBorderColor = Color(red: 0.89, green: 0.86, blue: 0.80)
     private let portionBackground = Color(red: 0.91, green: 0.88, blue: 0.82)
     private let tableHorizontalPadding: CGFloat = 18
     private let tableFirstColumnWidth: CGFloat = 108
 
-    // Loads the `Piringku` asset by default while still allowing a custom image or nil for testing.
-    init(plateImage: Image? = Image("Piringku")) {
+    // Loads the full `IsiPiringkuGuide` asset by default while still allowing a custom image or nil for testing.
+    init(plateImage: Image? = Image("IsiPiringkuGuide")) {
         self.plateImage = plateImage
     }
 
@@ -40,19 +37,19 @@ struct IsiPiringkuGuideView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
-                    header
-
                     plateGuide
-                        .padding(.top, usesExpandedLayout ? 26 : 30)
+                        .padding(.top, usesExpandedLayout ? 18 : 22)
 
                     principleSection
-                        .padding(.top, usesExpandedLayout ? 30 : 22)
+                        .padding(.top, usesExpandedLayout ? 44 : 34)
                         .padding(.bottom, 48)
                 }
                 .frame(maxWidth: .infinity)
             }
             .scrollIndicators(.hidden)
             .background(pageBackground.ignoresSafeArea())
+            .navigationTitle("Panduan Isi Piringku")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Tutup", systemImage: "xmark", action: dismiss.callAsFunction)
@@ -63,35 +60,6 @@ struct IsiPiringkuGuideView: View {
             .accessibilityAction(.escape) {
                 dismiss()
             }
-        }
-    }
-
-    // MARK: - Header
-
-    // Builds an adaptive header for standard and Accessibility text sizes.
-    @ViewBuilder
-    private var header: some View {
-        if usesExpandedLayout {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Panduan Isi Piringku")
-                    .font(.title.bold())
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-        } else {
-            ZStack {
-                Text("Panduan Isi Piringku")
-                    .font(.title2.bold())
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 64)
-                    .accessibilityAddTraits(.isHeader)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
         }
     }
 
@@ -107,79 +75,65 @@ struct IsiPiringkuGuideView: View {
         }
     }
 
-    // Creates the hi-fi diagram with labels and connector lines for standard text sizes.
+    // Shows the complete guide artwork as one scalable image.
     private var standardPlateGuide: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let centerX = width / 2
-            let plateSize = min(width * 0.58, 228)
-
-            ZStack {
-                plateArtwork
-                    .frame(width: plateSize, height: plateSize)
-                    .position(x: centerX, y: 148)
-
-                connector(
-                    from: CGPoint(x: centerX - plateSize * 0.48, y: 88),
-                    to: CGPoint(x: centerX - plateSize * 0.31, y: 104),
-                    color: connectorColor
-                )
-
-                connector(
-                    from: CGPoint(x: centerX + plateSize * 0.48, y: 90),
-                    to: CGPoint(x: centerX + plateSize * 0.31, y: 106),
-                    color: connectorColor
-                )
-
-                connector(
-                    from: CGPoint(x: centerX - plateSize * 0.48, y: 215),
-                    to: CGPoint(x: centerX - plateSize * 0.30, y: 202),
-                    color: connectorColor
-                )
-
-                connector(
-                    from: CGPoint(x: centerX + plateSize * 0.48, y: 218),
-                    to: CGPoint(x: centerX + plateSize * 0.31, y: 205),
-                    color: connectorColor
-                )
-
-                diagramLabel("Lauk-pauk", alignment: .leading)
-                    .position(x: 70, y: 60)
-
-                diagramLabel("Buah-\nbuahan", alignment: .leading)
-                    .position(x: width - 30, y: 60)
-
-                diagramLabel("Makanan Pokok", alignment: .leading)
-                    .position(x: 74, y: 245)
-
-                diagramLabel("Sayuran", alignment: .leading)
-                    .position(x: width - 45, y: 240)
-            }
-        }
-        .frame(height: 280)
-        .padding(.horizontal, 18)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "Diagram Isi Piringku terdiri dari makanan pokok, lauk-pauk, sayuran, dan buah-buahan"
-        )
+        labeledPlateArtwork(maxWidth: 270)
+            .padding(.horizontal, 32)
+            .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                "Layout Isi Piringku terdiri dari makanan pokok, lauk-pauk, sayuran, dan buah-buahan"
+            )
     }
 
-    // Creates a vertical plate layout that prevents collisions at large text sizes.
+    // Shows the complete guide artwork at a smaller scale for Accessibility text sizes.
     private var accessiblePlateGuide: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            plateArtwork
-                .frame(maxWidth: 260)
-                .aspectRatio(1, contentMode: .fit)
-                .frame(maxWidth: .infinity)
+        labeledPlateArtwork(maxWidth: 260)
+            .padding(.horizontal, 32)
+            .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                "Layout Isi Piringku terdiri dari makanan pokok, lauk-pauk, sayuran, dan buah-buahan"
+            )
+    }
 
-            VStack(alignment: .leading, spacing: 16) {
-                accessibleCategoryLabel("Lauk-pauk", color: proteinColor)
-                accessibleCategoryLabel("Buah-buahan", color: proteinColor)
-                accessibleCategoryLabel("Makanan Pokok", color: stapleColor)
-                accessibleCategoryLabel("Sayuran", color: vegetableColor)
+    // Adds fixed guide labels over the existing guide artwork without changing the image asset.
+    private func labeledPlateArtwork(maxWidth: CGFloat) -> some View {
+        Color.clear
+            .aspectRatio(634.0 / 484.0, contentMode: .fit)
+            .frame(maxWidth: maxWidth)
+            .overlay {
+                GeometryReader { proxy in
+                    let width = proxy.size.width
+                    let height = proxy.size.height
+
+                    ZStack {
+                        plateArtwork
+                            .frame(width: width, height: height)
+
+                        guideLabel("Lauk-pauk")
+                            .position(x: width * 0.04, y: height * 0.05)
+
+                        guideLabel("Buah-\nbuahan")
+                            .position(x: width * 1.01, y: height * 0.03)
+
+                        guideLabel("Makanan\nPokok")
+                            .position(x: width * 0.08, y: height * 0.95)
+
+                        guideLabel("Sayuran")
+                            .position(x: width * 1.01, y: height * 0.95)
+                    }
+                }
             }
-        }
-        .padding(.horizontal, 24)
+    }
+
+    private func guideLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(.black)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(width: 92, alignment: .leading)
     }
 
     // Displays the supplied plate image or a temporary placeholder.
@@ -220,53 +174,6 @@ struct IsiPiringkuGuideView: View {
             .shadow(color: .black.opacity(0.04), radius: 8, y: 3)
             .accessibilityLabel("Ilustrasi Isi Piringku belum ditambahkan")
         }
-    }
-
-    // Creates a text label positioned around the standard plate diagram.
-    private func diagramLabel(
-        _ text: String,
-        alignment: TextAlignment
-    ) -> some View {
-        Text(text)
-            .font(.callout.bold())
-            .multilineTextAlignment(alignment)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(width: 104, alignment: .leading)
-    }
-
-    // Creates a colored category row for the expanded Accessibility layout.
-    private func accessibleCategoryLabel(_ text: String, color: Color) -> some View {
-        Label {
-            Text(text)
-                .font(.headline)
-                .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: "circle.fill")
-                .font(.caption2)
-                .foregroundStyle(.black)
-                .accessibilityHidden(true)
-        }
-    }
-
-    // Draws a black connector line and endpoint between a label and the plate.
-    private func connector(
-        from start: CGPoint,
-        to end: CGPoint,
-        color: Color
-    ) -> some View {
-        ZStack {
-            Path { path in
-                path.move(to: start)
-                path.addLine(to: end)
-            }
-            .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
-
-            Circle()
-                .fill(color)
-                .frame(width: 7, height: 7)
-                .position(start)
-        }
-        .accessibilityHidden(true)
     }
 
     // MARK: - Principles
@@ -426,7 +333,7 @@ struct IsiPiringkuGuideButtonExample: View {
             isGuidePresented = true
         }
         .sheet(isPresented: $isGuidePresented) {
-            // IsiPiringkuGuideView automatically loads Image("Piringku") from Assets.xcassets.
+            // IsiPiringkuGuideView automatically loads Image("IsiPiringkuGuide") from Assets.xcassets.
             IsiPiringkuGuideView()
                 .presentationDragIndicator(.visible)
         }
