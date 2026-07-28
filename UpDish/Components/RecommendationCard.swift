@@ -13,11 +13,15 @@ struct RecommendationCard: View {
     let recommendation: MealRecommendation
     let status: MealBalanceStatus
 
+    /// 20pt by default, scaling with Dynamic Type so the icon keeps pace with
+    /// the title instead of shrinking beside large text.
+    @ScaledMetric private var iconSize: CGFloat = 20
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "wand.and.sparkles.inverse")
                 .foregroundStyle(.primary)
-                .font(.system(size: 20))
+                .font(.system(size: iconSize))
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 10) {
