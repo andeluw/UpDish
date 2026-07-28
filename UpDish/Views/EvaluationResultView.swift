@@ -13,9 +13,26 @@ import Translation
 
 struct EvaluationResultView: View {
     @State private var viewModel: EvaluationResultViewModel
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(viewModel: EvaluationResultViewModel) {
         _viewModel = State(initialValue: viewModel)
+    }
+
+    /// Plate beside the checklist normally, but stacked once the text reaches
+    /// an accessibility size — side by side, the checklist labels would wrap to
+    /// slivers and the plate would squeeze the row. Matches the layout switch
+    /// the component screen already uses.
+    private var plateChecklistLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .center, spacing: 20))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 20))
+    }
+
+    /// The plate shares a cramped row at normal sizes, but gets the full width
+    /// to itself once stacked — so it's drawn much larger and centred there.
+    private var plateDiameter: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 260 : 150
     }
     
     init(record: MealHistoryRecord) {
@@ -41,16 +58,28 @@ struct EvaluationResultView: View {
                         .accessibilityLabel(viewModel.dateAccessibilityText)
                 }
 
-                HStack(alignment: .center, spacing: 20) {
+                plateChecklistLayout {
                     IsiPiringkuPlateView(
                         evaluations: viewModel.evaluation.categoryEvaluations,
+                        diameter: plateDiameter,
                         isLoading: viewModel.isGeneratingGuidance
                     )
+                    // Take the whole width when stacked so the enlarged plate
+                    // sits centred; keep natural width in the side-by-side row.
+                    .frame(
+                        maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil
+                    )
+
                     CategoryChecklistView(
                         evaluations: viewModel.evaluation.categoryEvaluations,
                         isLoading: viewModel.isGeneratingGuidance
                     )
-                    Spacer(minLength: 0)
+                    // Only pushes content left in the side-by-side layout; a
+                    // trailing Spacer inside the stacked layout would add dead
+                    // vertical space between the plate and checklist.
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        Spacer(minLength: 0)
+                    }
                 }
 
                 if viewModel.isGeneratingGuidance {
@@ -102,7 +131,9 @@ struct EvaluationResultView: View {
             + "Mohon periksa kembali hasil evaluasi."
 
         return Text(text)
-            .font(.system(size: 12))
+            // .caption is 12pt at the default size but scales with Dynamic
+            // Type; a fixed .system(size: 12) would stay tiny at large sizes.
+            .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityLabel(text)
