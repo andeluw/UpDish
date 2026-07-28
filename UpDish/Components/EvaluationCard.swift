@@ -12,11 +12,15 @@ struct EvaluationCard: View {
     let status: MealBalanceStatus
     let feedback: FeedbackText
 
+    /// 20pt by default, scaling with Dynamic Type so the verdict icon grows
+    /// alongside the headline instead of shrinking beside large text.
+    @ScaledMetric private var iconSize: CGFloat = 20
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: status.iconName)
                 .foregroundStyle(status.accentColor)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: iconSize, weight: .semibold))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(feedback.headline)
