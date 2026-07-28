@@ -85,13 +85,8 @@ enum AppleIntelligenceStatus: Equatable {
     }
     #endif
 
-    /// Whether to interrupt the user with an alert. Deliberately narrow — an
-    /// alert is only justified when there is a switch they can go and flip.
-    var deservesPrompt: Bool { self == .notEnabled }
-
-    /// Whether to show the passive notice on the Home screen. Wider than
-    /// `deservesPrompt`, because "sedang disiapkan" is useful context even
-    /// though there's nothing to tap.
+    /// Whether to show the passive notice on the Home screen. The only place
+    /// the state is surfaced now that the alerts are gone.
     var deservesHomeNotice: Bool { self == .notEnabled || self == .preparing }
 
     // MARK: - Copy
@@ -99,9 +94,9 @@ enum AppleIntelligenceStatus: Equatable {
     var noticeText: String {
         switch self {
         case .notEnabled:
-            "Aktifkan Apple Intelligence untuk masukan yang lebih personal."
+            "Aktifkan Apple Intelligence di pengaturan Apple Intelligence & Siri untuk hasil yang lebih baik."
         case .preparing:
-            "Apple Intelligence sedang disiapkan. Masukan personal akan aktif sebentar lagi."
+            "Apple Intelligence sedang disiapkan. Hasil yang lebih baik akan aktif sebentar lagi."
         case .ready, .unsupported:
             ""
         }
@@ -109,42 +104,6 @@ enum AppleIntelligenceStatus: Equatable {
 
     var noticeIcon: String {
         self == .preparing ? "arrow.down.circle" : "sparkles"
-    }
-
-    var alertTitle: String { "Aktifkan Apple Intelligence" }
-
-    /// Spells out the route step by step, including backing out of UpDish's own
-    /// page. `openSettings()` can only land the user there — it is NOT the
-    /// Apple Intelligence pane and has no switch on it — so without these steps
-    /// the user arrives somewhere that looks like the right place but isn't.
-    var alertMessage: String {
-        """
-        UpDish memakai Apple Intelligence untuk menyusun masukan dan \
-        rekomendasi yang lebih personal untukmu.
-
-        Cara mengaktifkan:
-        1. Ketuk "Buka Pengaturan"
-        2. Ketuk ‹ Pengaturan di kiri atas
-        3. Pilih Apple Intelligence & Siri
-        4. Nyalakan Apple Intelligence
-
-        Tanpa ini, evaluasi Isi Piringku tetap berjalan dengan masukan dasar.
-        """
-    }
-
-    /// Opens Settings at UpDish's own page — the deepest link iOS allows.
-    ///
-    /// The SDK exposes exactly three settings URLs (app page, notifications,
-    /// default apps) and none of them reach Apple Intelligence & Siri. The
-    /// `App-Prefs:root=` scheme that would is undocumented private API: it
-    /// risks App Review rejection, and the pane identifiers change between
-    /// releases, so it fails silently on the OS versions it wasn't written for.
-    /// Hence the spelled-out steps in `alertMessage` instead.
-    @MainActor
-    static func openSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString),
-              UIApplication.shared.canOpenURL(url) else { return }
-        UIApplication.shared.open(url)
     }
 }
 

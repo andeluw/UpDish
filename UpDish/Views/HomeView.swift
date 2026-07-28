@@ -47,7 +47,6 @@ struct HomeView: View {
     @State private var isCancelDetectionAlertPresented: Bool = false
 
     @State private var appleIntelligence = AppleIntelligenceMonitor()
-    @State private var isAppleIntelligenceAlertPresented = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -56,13 +55,9 @@ struct HomeView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 if appleIntelligence.status.deservesHomeNotice {
-                    AppleIntelligenceBanner(
-                        status: appleIntelligence.status
-                    ) {
-                        isAppleIntelligenceAlertPresented = true
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
+                    AppleIntelligenceBanner(status: appleIntelligence.status)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
                 }
 
                 Group {
@@ -211,9 +206,6 @@ struct HomeView: View {
                     )
                 )
             }
-            .appleIntelligenceAlert(
-                isPresented: $isAppleIntelligenceAlertPresented
-            )
             // The user may leave, flip the switch, and come back — re-read the
             // state on return so the banner clears itself.
             .onChange(of: scenePhase) { _, phase in
