@@ -18,12 +18,12 @@ struct AppleIntelligenceBanner: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: status.noticeIcon)
-                .font(.system(size: 16))
+                .font(.callout)
                 .foregroundStyle(Self.foreground)
                 .accessibilityHidden(true)
 
             Text(status.noticeText)
-                .font(.system(size: 13))
+                .font(.footnote)
                 .foregroundStyle(Self.foreground)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)

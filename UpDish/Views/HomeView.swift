@@ -90,7 +90,7 @@ struct HomeView: View {
                 isPresented: $showDeleteAlert,
                 presenting: recordToDelete
             ) { record in
-                Button("Batalkan", role: .cancel) {
+                Button("Kembali", role: .cancel) {
                     recordToDelete = nil
                 }
                 Button("Hapus", role: .destructive) {
@@ -334,6 +334,7 @@ extension HomeView {
             )
         )
         .padding(.horizontal, 20)
+        .accessibilityElement(children: .combine)
     }
 
     private var noSearchResultsView: some View {
@@ -345,6 +346,7 @@ extension HomeView {
             )
         )
         .padding(.horizontal, 20)
+        .accessibilityElement(children: .combine)
     }
 
     private func historySection(
