@@ -50,7 +50,7 @@ struct OnboardingView: View {
                     .foregroundStyle(Color(red: 62/255, green: 79/255, blue: 34/255))
                     .multilineTextAlignment(.center)
 
-                Text("Kami menggunakan Apple Intelligence untuk menganalisis komposisi makanananmu dan pastikan sudah aktif agar mendapat rekomendasi gizi yang lebih baik.")
+                Text("Kami menggunakan Apple Intelligence untuk menganalisis komposisi makananmu dan pastikan sudah aktif agar mendapat rekomendasi gizi yang lebih baik.")
                     .font(.callout)
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)

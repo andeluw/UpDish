@@ -113,7 +113,7 @@ struct ComponentModificationView: View {
                                 )
 
                             Text(
-                                "Komponen yang tepat akan membantu kami memberikan evaluasi gizi yang akurat. Total seluruh komposisi wajib 100%"
+                                "Komponen yang tepat akan membantu kami memberikan evaluasi gizi yang akurat. Total seluruh komposisi wajib 100%."
                             )
                             .font(.caption2)
                             .fontWeight(.medium)
