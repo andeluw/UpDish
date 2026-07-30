@@ -1,0 +1,37 @@
+{
+  "fill" : {
+    "automatic-gradient" : "display-p3:1.00000,0.99613,0.92446,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "glass" : false,
+          "image-name" : "Untitled_Artwork 276.png",
+          "name" : "Untitled_Artwork 276",
+          "position" : {
+            "scale" : 0.92,
+            "translation-in-points" : [
+              -2.5,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
