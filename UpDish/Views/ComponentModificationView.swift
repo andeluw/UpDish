@@ -145,6 +145,8 @@ struct ComponentModificationView: View {
                         Text(
                             viewModel.remainingPercentage == 0
                                 ? "100%"
+                            : viewModel.remainingPercentage < 0 ?
+                                "lebih \(abs(viewModel.remainingPercentage))%"
                                 : "kurang \(viewModel.remainingPercentage)%"
                         )
                         .font(.caption)
@@ -160,6 +162,8 @@ struct ComponentModificationView: View {
                     .accessibilityLabel(
                         viewModel.remainingPercentage == 0
                             ? "Komposisi saat ini 100%"
+                        : viewModel.remainingPercentage < 0 ?
+                            "Komposisi saat ini lebih \(abs(viewModel.remainingPercentage))%"
                             : "Komposisi saat ini kurang \(viewModel.remainingPercentage)%"
                     )
 
