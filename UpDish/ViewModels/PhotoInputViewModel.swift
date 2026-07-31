@@ -199,7 +199,11 @@ final class PhotoInputViewModel {
                     }
                     return
                 } else {
-                    self.errorMessage = error.localizedDescription.isEmpty ? "Makanan belum dapat dianalisis. Periksa koneksi dan coba lagi." : error.localizedDescription
+                    #if DEBUG
+                    print("Unexpected error: ", error)
+                    #endif
+                    
+                    self.errorMessage = "Makanan belum dapat dianalisis. Periksa koneksi dan coba lagi."
                 }
             }
         }

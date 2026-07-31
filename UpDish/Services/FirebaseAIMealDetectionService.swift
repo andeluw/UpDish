@@ -224,7 +224,11 @@ final class FirebaseAIMealDetectionService: MealDetectionService {
                 throw MealDetectionError.connectionLost
 
             default:
-                throw error
+                #if DEBUG
+                    print("Firebase AI error: ", error)
+                #endif
+
+                throw MealDetectionError.analysisFailed
             }
         }
     }
@@ -266,6 +270,7 @@ enum MealDetectionError: LocalizedError {
     case emptyResponse
     case noFoodDetected
     case invalidResponse
+    case analysisFailed
 
     var errorDescription: String? {
         switch self {
@@ -283,6 +288,8 @@ enum MealDetectionError: LocalizedError {
         case .invalidResponse:
             return
                 "Hasil analisis tidak dapat diproses. Silakan coba lagi dengan foto yang lebih jelas."
+        case .analysisFailed:
+            return "Makanan belum dapat dianalisis. Silakan coba lagi."
         }
     }
 }
