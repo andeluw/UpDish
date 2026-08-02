@@ -55,6 +55,14 @@ struct RecommendationService {
 
     // MARK: - Narrative
 
+    /// Deterministic, category-accurate summary line — names only the groups
+    /// that actually need completing. Exposed so the Foundation Model path
+    /// (which supplies its own food choices) reuses the exact same message and
+    /// can never mention a group that's already sufficient.
+    func summary(for evaluation: MealEvaluation) -> String {
+        describe(weakCategories: evaluation.categoriesNeedingImprovement.map(\.category))
+    }
+
     private func describe(weakCategories: [FoodCategory]) -> String {
         let hasSayur = weakCategories.contains(.vegetable)
         let hasBuah = weakCategories.contains(.fruit)

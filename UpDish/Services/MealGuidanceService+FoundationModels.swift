@@ -39,17 +39,19 @@ struct GeneratedSuggestion {
 @available(iOS 26.0, *)
 @Generable
 struct GeneratedGuidance {
-    @Guide(description: "Exactly two complete sentences of natural English prose. NEVER output a bare list of food names — every part must be a full sentence with a verb. Sentence 1 says what the plate contains, naming each actual food exactly as given. Sentence 2 covers what still needs completing, or confirms the plate already meets the standard when nothing does. Never quote the prompt's internal labels back at the user. No numbers.")
-    let feedbackBody: String
-
-    @Guide(description: "One encouraging English sentence about the benefit of completing the missing groups. No numbers.")
-    let recommendationSummary: String
-
+    // The feedback paragraph and the recommendation summary are built
+    // deterministically from the evaluation (naming every food + the checklist
+    // statuses), so the model's ONLY job is the recommendation food choices —
+    // the one part that benefits from its variety. Everything it used to write
+    // in prose (which foods are on the plate, which groups are short) is now
+    // generated from the checklist data, so it can never drop a food or
+    // contradict the verdict.
+    //
     // Bounded: an unbounded array let the model generate until it blew the
     // 4096-token context window, which failed the whole request and silently
     // dropped the user to the template fallback.
     @Guide(.maximumCount(6))
-    @Guide(description: "For EACH group that needs completing, give 2-3 food choices. Leave empty if nothing needs completing.")
+    @Guide(description: "For EACH group that still needs completing, give 2-3 food choices. Leave empty if nothing needs completing.")
     let suggestions: [GeneratedSuggestion]
 }
 
@@ -78,12 +80,7 @@ extension MealGuidanceService {
             )
             let content = response.content
 
-            let feedbackBody = content.feedbackBody.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !feedbackBody.isEmpty else { return nil }
-
             return EnglishGuidance(
-                feedbackBody: feedbackBody,
-                recommendationSummary: content.recommendationSummary.trimmingCharacters(in: .whitespacesAndNewlines),
                 suggestions: content.suggestions.map {
                     EnglishSuggestion(
                         category: $0.category.appCategory,
@@ -132,30 +129,14 @@ extension MealGuidanceService {
         1/3 staple food, 1/3 vegetables, 1/6 protein side dish, 1/6 fruit. Half \
         the plate is vegetables and fruit.
 
-        How to write the feedback:
-        - ALWAYS name the user's actual foods, for every verdict without \
-        exception. Even when the plate is complete and you are only \
-        celebrating, say which foods it is made of. Never describe the plate \
-        only in the abstract, like "a staple food and a protein".
-        - Copy every food name EXACTLY as it was given to you, character for \
-        character. These are dish names, NOT words to translate. If the plate \
-        says "Telur Dadar", write "Telur Dadar" — never "fried chicken" or \
-        "omelette". Naming a food the user does not have is the worst mistake \
-        you can make.
-        - Clearly distinguish a group that is PRESENT BUT TOO LITTLE (the food \
-        is on the plate but the portion is small — say it is there, then say \
-        more can be added) from a group that is COMPLETELY MISSING (not on the \
-        plate at all — say it is not there yet). Never word these two the same \
-        way.
-        - Never call the plate balanced, complete, healthy, or "a good start" \
-        while any group is too small or missing.
-        - Never praise a group whose portion is too small.
-        - When every group is already sufficient, simply celebrate it. Do NOT \
-        suggest adding anything, and do NOT mention improving a group that is \
-        already enough.
+        Your only job is to suggest foods for the groups that still need \
+        completing. Rules:
+        - Suggest common, everyday Indonesian foods that fit each group, and \
+        match every suggestion to the correct group.
+        - Only suggest for the groups the prompt says are too small or missing. \
+        Never suggest for a group the prompt says is already fine.
         - Never mention calories, grams, or any nutrient amount.
-        - Write in English (it is translated afterwards). Keep the tone warm and \
-        simple, but always state plainly which groups still need adding.
+        - Write in English (it is translated afterwards).
         """
     }
 
@@ -177,34 +158,23 @@ extension MealGuidanceService {
         let missing = evaluation.categoryEvaluations
             .filter { $0.status == .missing }
             .map(\.category.englishName)
+        let sufficient = evaluation.categoryEvaluations
+            .filter { $0.status == .sufficient }
+            .map(\.category.englishName)
 
         guard !tooLittle.isEmpty || !missing.isEmpty else {
             return balancedPrompt(for: evaluation)
         }
-        return completionPrompt(for: evaluation, tooLittle: tooLittle, missing: missing)
+        return completionPrompt(for: evaluation, tooLittle: tooLittle, missing: missing, sufficient: sufficient)
     }
 
-    /// Nothing is short, so the group labels are omitted entirely — with them
-    /// present the model read them back as "Nasi Putih (staple food), ...".
+    /// Every group is already sufficient, so there is nothing to suggest.
     private func balancedPrompt(for evaluation: MealEvaluation) -> String {
-        let foods = evaluation.components
-            .map { "- \($0.name)" }
-            .joined(separator: "\n")
+        """
+        Here is one Indonesian home-cooked plate. Every group on it is already \
+        sufficient, so nothing needs to be added.
 
-        return """
-        Here is one Indonesian home-cooked plate. Every group on it is \
-        sufficient, and the user is being shown the verdict "Seimbang" \
-        (balanced).
-
-        Foods on the plate:
-        \(foods.isEmpty ? "- (none listed)" : foods)
-
-        Write:
-        1. feedbackBody — two sentences. The first names these foods, spelled \
-        exactly as above. The second says they already meet the Isi Piringku \
-        standard, and encourages keeping it up.
-        2. recommendationSummary — one warm sentence about keeping this habit.
-        3. suggestions — leave empty.
+        Return an empty suggestions list.
         """
     }
 
@@ -214,7 +184,8 @@ extension MealGuidanceService {
     private func completionPrompt(
         for evaluation: MealEvaluation,
         tooLittle: [String],
-        missing: [String]
+        missing: [String],
+        sufficient: [String]
     ) -> String {
         // `category` is optional: detection may not have classified an item
         // yet, in which case we still name the food but omit the group label.
@@ -233,21 +204,17 @@ extension MealGuidanceService {
         Foods on the plate:
         \(foods.isEmpty ? "- (none listed)" : foods)
 
-        Already on the plate, but the portion is too small: \
+        Groups that are too small and need more: \
         \(tooLittle.isEmpty ? "none" : tooLittle.joined(separator: ", "))
-        Not on the plate at all: \
+        Groups not on the plate at all: \
         \(missing.isEmpty ? "none" : missing.joined(separator: ", "))
+        Groups already fine — do NOT suggest anything for these: \
+        \(sufficient.isEmpty ? "none" : sufficient.joined(separator: ", "))
 
-        Write:
-        1. feedbackBody — two sentences. The first names the foods above, \
-        spelled exactly as above. The second covers every group listed on the \
-        two lines above: for a group whose portion is too small, say that food \
-        is already on the plate and more of it can be added; for a group that \
-        is not on the plate, say it is not there yet and can be added. \
-        Describe the groups in ordinary words.
-        2. recommendationSummary — encourage completing those groups.
-        3. suggestions — 2-3 choices with portions for each group listed on \
-        those two lines.
+        Suggest 2-3 food choices with portions for EACH group on the "too \
+        small" and "not on the plate" lines, and nothing for the groups that \
+        are already fine. The foods list is context so your suggestions are \
+        different from what is already there.
         """
     }
 
