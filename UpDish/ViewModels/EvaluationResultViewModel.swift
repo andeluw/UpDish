@@ -210,7 +210,7 @@ final class EvaluationResultViewModel {
         }
         pendingEnglish = english
         advanceGuidance(to: .foundationModel)
-        NSLog("UPDISH_STAGE1_FM: got English guidance → \"\(english.feedbackBody)\"")
+        NSLog("UPDISH_STAGE1_FM: got \(english.suggestions.count) suggestion(s) to translate")
 
         #if canImport(Translation)
         translationConfig = TranslationSession.Configuration(
@@ -245,23 +245,21 @@ final class EvaluationResultViewModel {
             try await session.prepareTranslation()
 
             NSLog("UPDISH_STAGE2_TRANSLATE: starting EN→ID translation")
-            let body = Self.informal(try await session.translate(english.feedbackBody).targetText)
-            let summary = english.recommendationSummary.isEmpty
-                ? ""
-                : Self.informal(try await session.translate(english.recommendationSummary).targetText)
-
+            // The feedback paragraph is fully deterministic — it names every
+            // food and states the checklist statuses, so it can never drop a
+            // food or contradict the verdict. Only the recommendation's food
+            // CHOICES come from the model and need translating.
             var translatedOptions: [(category: FoodCategory, text: String)] = []
             for suggestion in english.suggestions where !suggestion.text.isEmpty {
                 let text = try await session.translate(suggestion.text).targetText
                 translatedOptions.append((suggestion.category, text))
             }
 
-            // Both the feedback AND the recommendation come from the model, now
-            // in Indonesian. Fall back to the curated recommendation only if the
-            // model produced no usable options for the flagged groups.
-            feedback = FeedbackText(headline: evaluation.overallStatus.displayName, body: body)
+            feedback = fallback.feedback
+            // Prefer the model's food choices (translated, with our deterministic
+            // summary + portions); fall back to the curated list if it produced
+            // no usable options for the flagged groups.
             recommendation = guidanceService.recommendation(
-                summary: summary,
                 options: translatedOptions,
                 for: evaluation
             ) ?? fallback.recommendation
@@ -270,45 +268,13 @@ final class EvaluationResultViewModel {
             advanceGuidance(to: .translated)
             isGeneratingGuidance = false
             persistGuidance()
-            NSLog("UPDISH_STAGE2_TRANSLATE: success → \"\(body)\"")
+            NSLog("UPDISH_STAGE2_TRANSLATE: success → \(translatedOptions.count) option(s), feedback=\"\(fallback.feedback.body)\"")
         } catch {
             NSLog("UPDISH_STAGE2_TRANSLATE: FAILED (\(error)) — showing deterministic fallback")
             applyFallback()
         }
     }
     #endif
-
-    // MARK: - Tone
-
-    /// Apple's translator renders "you" as the formal "Anda", but the rest of
-    /// the app speaks casually ("piringmu", "makananmu"). Swap the pronoun and
-    /// repair sentence capitalisation so the tone stays consistent.
-    private static func informal(_ text: String) -> String {
-        let swapped = text.replacingOccurrences(
-            of: "\\bAnda\\b",
-            with: "kamu",
-            options: [.regularExpression]
-        )
-        return capitalizingSentences(swapped)
-    }
-
-    private static func capitalizingSentences(_ text: String) -> String {
-        var result = ""
-        var startOfSentence = true
-
-        for character in text {
-            if startOfSentence, character.isLetter {
-                result.append(contentsOf: character.uppercased())
-                startOfSentence = false
-            } else {
-                result.append(character)
-                if character == "." || character == "!" || character == "?" {
-                    startOfSentence = true
-                }
-            }
-        }
-        return result
-    }
 
     // MARK: - Caching
 

@@ -23,10 +23,10 @@ struct MealGuidance {
     let recommendation: MealRecommendation?
 }
 
-/// Model output before translation. `text`/bodies are in English.
+/// Model output before translation. The model now writes ONLY the
+/// recommendation food choices (in English); the feedback paragraph and the
+/// recommendation summary are built deterministically from the evaluation.
 struct EnglishGuidance {
-    let feedbackBody: String
-    let recommendationSummary: String
     let suggestions: [EnglishSuggestion]
 }
 
@@ -62,7 +62,6 @@ struct MealGuidanceService {
     /// Stage 2 assembly: turn already-translated Indonesian pieces into a
     /// MealRecommendation, gated to the groups the evaluation actually flagged.
     func recommendation(
-        summary: String,
         options: [(category: FoodCategory, text: String)],
         for evaluation: MealEvaluation
     ) -> MealRecommendation? {
@@ -99,7 +98,11 @@ struct MealGuidanceService {
 
         return MealRecommendation(
             title: "Rekomendasi Perbaikan",
-            message: summary.trimmingCharacters(in: .whitespacesAndNewlines),
+            // Deterministic, category-accurate summary — names only the groups
+            // that actually need completing, so it can never mention a group
+            // that's already sufficient (as the model's own summary sometimes
+            // did). The model supplies the food choices; the wording is ours.
+            message: recommendationService.summary(for: evaluation),
             groups: groups
         )
     }
